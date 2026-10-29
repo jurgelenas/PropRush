@@ -7,7 +7,8 @@ local floor = math.floor
 
 local Kit = {}
 
--- Ground grid: one spacing everywhere; solid near the camera, dotted further out
+-- Ground grid: one spacing everywhere (GRID_STEP unless the map picks its own); solid near the camera, dotted
+-- further out
 local GRID_STEP, NEAR_EXTENT = 30, 60
 local FAR_EXTENT = { 270, 360, 450 }
 
@@ -23,18 +24,18 @@ end
 -- One family of parallel grid lines. alongZ: lines of constant x running along z.
 -- reach: how far from the camera lines are placed; length: radius of the circle they are trimmed to.
 -- Line centres and directions are stepped in camera space instead of transforming every endpoint.
-local function drawFamily(alongZ, ox, oz, reach, length)
+local function drawFamily(alongZ, ox, oz, reach, length, step)
   local o = alongZ and ox or oz
-  local p = floor((o - reach) / GRID_STEP) * GRID_STEP
+  local p = floor((o - reach) / step) * step
   -- Camera-space images of the step between lines and of the line direction (unit vectors)
   local sx, sy, sz, dx, dy, dz
   local cx, cy, cz
   if alongZ then
-    sx, sy, sz = R.camVector(GRID_STEP, 0, 0)
+    sx, sy, sz = R.camVector(step, 0, 0)
     dx, dy, dz = R.camVector(0, 0, 1)
     cx, cy, cz = R.toCamera(p, 0, oz)
   else
-    sx, sy, sz = R.camVector(0, 0, GRID_STEP)
+    sx, sy, sz = R.camVector(0, 0, step)
     dx, dy, dz = R.camVector(1, 0, 0)
     cx, cy, cz = R.toCamera(ox, 0, p)
   end
@@ -44,7 +45,7 @@ local function drawFamily(alongZ, ox, oz, reach, length)
     local d = p - o
     local ad = d < 0 and -d or d
     -- Solid near the camera; dotted further out and on the outermost row, so lines entering at the edge fade in
-    local shade = (ad <= NEAR_EXTENT and ad <= reach - GRID_STEP) and 4 or 2
+    local shade = (ad <= NEAR_EXTENT and ad <= reach - step) and 4 or 2
     -- Trimmed to the circle of radius length, where the horizon stands
     local half = l2 - d * d
     if half > 0 then
@@ -53,14 +54,16 @@ local function drawFamily(alongZ, ox, oz, reach, length)
       R.camLine(cx - hx, cy - hy, cz - hz, cx + hx, cy + hy, cz + hz, shade)
     end
     cx, cy, cz = cx + sx, cy + sy, cz + sz
-    p = p + GRID_STEP
+    p = p + step
   end
 end
 
-function Kit.drawGrid(quality)
+-- step: line spacing in metres, GRID_STEP by default
+function Kit.drawGrid(quality, step)
+  step = step or GRID_STEP
   local ox, oy, oz = R.cameraPos()
   local far = FAR_EXTENT[quality]
-  local useful = math.sqrt(R.focal() * oy * GRID_STEP / MIN_GAP_PX)
+  local useful = math.sqrt(R.focal() * oy * step / MIN_GAP_PX)
   -- At least the near extent, so the edge where lines enter stays well ahead even when skimming the ground
   if useful < NEAR_EXTENT then
     useful = NEAR_EXTENT
@@ -69,8 +72,8 @@ function Kit.drawGrid(quality)
   end
   -- Only lines within the uncrowded range are placed, but each runs on to the horizon: the ones heading
   -- away from the view become a few rays converging on it instead of a dense fan
-  drawFamily(true, ox, oz, useful, far)
-  drawFamily(false, ox, oz, useful, far)
+  drawFamily(true, ox, oz, useful, far, step)
+  drawFamily(false, ox, oz, useful, far, step)
 end
 
 -- Horizon ring: a ridge and its base line around the camera. It follows the camera, so it is never reached.
@@ -78,52 +81,58 @@ end
 -- 50 degrees off it, and ring points are at most ~20 degrees apart, so a segment reaching into view is kept.
 local RING_CULL = 0.35
 
+-- The base is a circle on the ground, nearly straight on screen, so it is drawn as a coarse polygon of its own
+-- instead of through every ridge point: 20 degree chords sag under a third of a pixel
+local BASE_N = 18
+local BASE = { n = BASE_N, sin = {}, cos = {} }
+for i = 1, BASE_N do
+  local a = (i - 1) * 2 * math.pi / BASE_N
+  BASE.sin[i], BASE.cos[i] = math.sin(a), math.cos(a)
+end
+
 -- Ridge elevations in degrees, evenly spaced around the compass from north turning east, or at the given
 -- azimuths in degrees (ascending, below 360): two points at one azimuth draw a vertical step, as in a skyline.
 function Kit.newRing(elevations, azimuths)
   local n = #elevations
-  local ring = { n = n, sin = {}, cos = {}, tan = {}, step = {} }
+  local ring = { n = n, sin = {}, cos = {}, tan = {} }
   for i = 1, n do
     local a = azimuths and azimuths[i] * math.pi / 180 or (i - 1) * 2 * math.pi / n
     ring.sin[i], ring.cos[i], ring.tan[i] = math.sin(a), math.cos(a), math.tan(elevations[i] * math.pi / 180)
-    -- A vertical step has no base line
-    ring.step[i] = azimuths ~= nil and i > 1 and azimuths[i] == azimuths[i - 1]
   end
   return ring
 end
 
 Kit.HILLS = Kit.newRing({ 1.5, 3, 2, 4.5, 3.5, 1, 2.5, 5, 3, 2, 1, 3.5, 6, 4, 2, 1.5, 3, 2, 4, 2.5, 1, 3, 4.5, 2 })
 
+-- Closed loop of ring points at distance dist from the camera, at their elevations (tans) or on the ground
+local function drawLoop(loop, tans, dist, ox, oz, fx, fz)
+  local n, sins, coss = loop.n, loop.sin, loop.cos
+  local prev, px, py, pz
+  for i = 0, n do
+    local k = i == 0 and n or i
+    local s, c = sins[k], coss[k]
+    if s * fx + c * fz > RING_CULL then
+      local x, y, z = R.toCamera(ox + dist * s, tans and dist * tans[k] or 0, oz + dist * c)
+      if prev then
+        R.camLine(px, py, pz, x, y, z, 4)
+      end
+      px, py, pz, prev = x, y, z, true
+    else
+      prev = nil
+    end
+  end
+end
+
 function Kit.drawRing(ring, dist)
   local ox, _, oz = R.cameraPos()
-  local n, sins, coss, tans, steps = ring.n, ring.sin, ring.cos, ring.tan, ring.step
   local fx, _, fz = R.forward()
   local len = math.sqrt(fx * fx + fz * fz)
   if len < 0.01 then
     fx, fz, len = 0, 1, 1
   end
   fx, fz = fx / len, fz / len
-  local prev
-  local bx, by, bz, tx, ty, tz
-  for i = 0, n do
-    local k = i == 0 and n or i
-    local s, c = sins[k], coss[k]
-    if s * fx + c * fz > RING_CULL then
-      local x, z = ox + dist * s, oz + dist * c
-      local cx, cy, cz = R.toCamera(x, 0, z)
-      local ux, uy, uz = R.toCamera(x, dist * tans[k], z)
-      if prev then
-        if not steps[k] then
-          R.camLine(bx, by, bz, cx, cy, cz, 4)
-        end
-        R.camLine(tx, ty, tz, ux, uy, uz, 4)
-      end
-      bx, by, bz, tx, ty, tz = cx, cy, cz, ux, uy, uz
-      prev = true
-    else
-      prev = nil
-    end
-  end
+  drawLoop(BASE, nil, dist, ox, oz, fx, fz)
+  drawLoop(ring, ring.tan, dist, ox, oz, fx, fz)
 end
 
 -- Full detail within DRAW_DIST, fogged out to OUTLINE_FACTOR times that: no pop-in
@@ -134,10 +143,15 @@ local OUTLINE_FACTOR = 3
 -- second call per row is cheap.
 local BOX_SHADE, BOX_EDGE, FAR_SHADE, FAR_EDGE = 0, 4, 1, 2
 local SORT_EVERY = 4
+-- Upright bars (columns, posts: at least twice as tall as wide) narrower than this on screen are drawn as their
+-- outline instead of a box: the same picture, as the fill between the sides is a pixel at most, so nothing behind
+-- shows through
+local BAR_PX = 3
 
 -- Axis-aligned box from its base: centre x, centre z, width (x), depth (z), height, base height y0.
--- Carries the bounding sphere the scene culls and sorts with.
+-- Carries the bounding sphere the scene culls and sorts with, and bar, its half width when it is an upright bar.
 local function newBox(x, z, w, d, h, y0)
+  local wide = w > d and w or d
   return {
     x0 = x - w / 2,
     y0 = y0,
@@ -150,10 +164,15 @@ local function newBox(x, z, w, d, h, y0)
     cz = z,
     rad = math.sqrt(w * w + h * h + d * d) / 2,
     dist = 0,
+    bar = h >= 2 * wide and wide / 2,
   }
 end
 
 local function drawBox(b, fogged)
+  local bar = b.bar
+  if bar and R.bar(b.cx, b.cz, b.y0, b.y1, bar, BAR_PX, fogged and FAR_EDGE or BOX_EDGE) then
+    return
+  end
   if fogged then
     R.box(b.x0, b.y0, b.z0, b.x1, b.y1, b.z1, FAR_SHADE, FAR_EDGE)
   else

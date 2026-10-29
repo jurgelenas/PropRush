@@ -115,6 +115,36 @@ function R.line(ax, ay, az, bx, by, bz, shade)
   R.camLine(ax, ay, az, bx, by, bz, shade)
 end
 
+-- Upright bar of width 2 * half from (x, y0, z) to (x, y1, z) as its outline only: two sides at its projected width
+-- and the caps between them. Returns false, drawing nothing, when it is wider than maxPx on screen, seen nearly
+-- end-on or crosses the near plane: those need a box.
+function R.bar(x, z, y0, y1, half, maxPx, shade)
+  local ax, ay, az = toCamera(x, y0, z)
+  local bx, by, bz = toCamera(x, y1, z)
+  if az < NEAR or bz < NEAR then
+    return false
+  end
+  local ha, hb = half * focal / az, half * focal / bz
+  if 2 * (ha > hb and ha or hb) > maxPx then
+    return false
+  end
+  ax, ay = cx + ax * focal / az, cy - ay * focal / az
+  bx, by = cx + bx * focal / bz, cy - by * focal / bz
+  local dx, dy = bx - ax, by - ay
+  local len = math.sqrt(dx * dx + dy * dy)
+  if len < maxPx then
+    return false
+  end
+  local nx, ny = -dy / len, dx / len
+  local a1x, a1y, a2x, a2y = ax + nx * ha, ay + ny * ha, ax - nx * ha, ay - ny * ha
+  local b1x, b1y, b2x, b2y = bx + nx * hb, by + ny * hb, bx - nx * hb, by - ny * hb
+  sink.line(a1x, a1y, b1x, b1y, shade)
+  sink.line(a2x, a2y, b2x, b2y, shade)
+  sink.line(a1x, a1y, a2x, a2y, shade)
+  sink.line(b1x, b1y, b2x, b2y, shade)
+  return true
+end
+
 -- Clips CX/CY/CZ[1..n] against the near plane, projects into SX/SY, fills.
 local function clipProjectFill(n, shade, opaque)
   local m = 0

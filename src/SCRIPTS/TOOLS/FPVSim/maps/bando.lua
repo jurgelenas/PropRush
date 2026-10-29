@@ -7,6 +7,9 @@ local Map = {
   spawn = { x = 0, y = 0, z = 0, heading = 0 },
 }
 
+-- Ground grid spacing: wider than the default, so the buildings stand out from the ground
+local GRID = 120
+
 local scene = Kit.newScene()
 Map.scene = scene
 
@@ -26,11 +29,10 @@ mill.add(MX, MZ, 30, 14, SLAB, STOREY)
 mill.add(MX - 7.5, MZ, 15, 14, SLAB, 2 * STOREY + SLAB)
 
 -- Ruined facade along x at z = WZ: piers, window sills and a doorway as {width, height} from the west end
--- (height 0 leaves the doorway open), under a ragged top band of {width, height} pieces
+-- (height 0 leaves the doorway open), under one band over the openings
 local WX, WZ, WALL = -34, 22, 0.6
 local OPENING_TOP = 3.6
 local BAYS = { 3, 3.6, 4, 1, 2.5, 3.6, 4, 0, 2.5, 3.6, 4, 1, 3, 3.6 }
-local TOP = { 8, 2.4, 6, 1.4, 9, 2 }
 local wall = scene.addStructure()
 local x = WX
 for i = 1, #BAYS, 2 do
@@ -40,12 +42,7 @@ for i = 1, #BAYS, 2 do
   end
   x = x + w
 end
-x = WX
-for i = 1, #TOP, 2 do
-  local w = TOP[i]
-  wall.add(x + w / 2, WZ, w, WALL, TOP[i + 1], OPENING_TOP)
-  x = x + w
-end
+wall.add((WX + x) / 2, WZ, x - WX, WALL, 2.4, OPENING_TOP)
 
 -- Pipe bridge from beside the mill to a tower block, its deck 6 m up on two posts
 local BRIDGE_Y, BRIDGE_Z = 6, MZ
@@ -76,7 +73,7 @@ end
 local SKYLINE = Kit.newRing(elevations, azimuths)
 
 function Map.draw(quality)
-  Kit.drawGrid(quality)
+  Kit.drawGrid(quality, GRID)
   Kit.drawRing(SKYLINE, Kit.horizon(quality))
   Kit.drawPad(0, 0)
   scene.draw(quality)
