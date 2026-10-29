@@ -20,9 +20,25 @@ local CELL_FULL = 4.2
 local CELL_CUTOFF = 3.1
 -- Voltage sag at full throttle on a full pack, growing by SAG_EMPTY as it drains; settles at SAG_RATE per second
 local SAG_FULL, SAG_EMPTY, SAG_RATE = 0.15, 0.2, 8
-local CRASH_SPEED = 6
--- Body up-axis height (cos of tilt) below which a quad on the ground tips over: 60 degrees
+-- Contacts, by speed into the surface (m/s), for a 5" quad whose props pass a blade ~700 times a second at hover,
+-- so each pass bites about speed / 700 deep. From STRIKE_SPEED (under 1 mm a pass) an edge-on hit strikes the
+-- props. A crash is a broken prop edge-on (~7 mm a pass) or a broken frame flat on (a 3.3 m drop), blended by tilt;
+-- soft ground (grass) gives way, so it takes more. From BOUNCE_SPEED hits bounce back with BOUNCE of that speed.
+local STRIKE_SPEED = 0.5
+local CRASH_EDGE, CRASH_FLAT = 5, 8
+local SOFT_EDGE, SOFT_FLAT = 7, 12
+local BOUNCE_SPEED, BOUNCE = 1, 0.2
+-- Prop strike: tumble rate per m/s of edge-on impact (rad/s) and its cap, seconds of strike per m/s and their cap;
+-- while it lasts the flight controller has lost its hold and the props give STRIKE_THRUST of their thrust
+local TUMBLE_GAIN, TUMBLE_MAX = 2, 15
+local STRIKE_TIME, STRIKE_MAX = 0.05, 0.4
+local STRIKE_THRUST = 0.3
+local TUMBLE_DAMP = 1.5
+-- Surfaces with a normal this close to up are floors the quad can rest and slide on
+local FLOOR = 0.7
+-- Body up-axis height (cos of tilt) below which a quad resting on a floor has tipped over: 60 degrees
 local TIP_OVER = 0.5
+local REST_SPEED = 2
 
 local Quad = {}
 Quad.__index = Quad
@@ -54,6 +70,10 @@ function Quad:reset(x, y, z, headingDeg)
   self.voltage = CELL_FULL
   self.dead = false
   self.throttle = 0
+  -- Prop strike seconds left and the tumble, in world rad/s
+  self.strike = 0
+  self.wx, self.wy, self.wz = 0, 0, 0
+  self.grounded = false
 end
 
 function Quad:speed()
@@ -113,7 +133,20 @@ function Quad:step(dt, sticks, settings)
     rollRate = stickRate(sticks.ail, s.rollRcRate, s.rollRate, s.rollExpo)
   end
   local thr = 0
-  if not self.dead then
+  if self.strike > 0 then
+    self.strike = self.strike - dt
+    local wx, wy, wz = self.wx, self.wy, self.wz
+    self:rotate(
+      -(wx * self.rx + wy * self.ry + wz * self.rz) * dt,
+      (wx * self.ux + wy * self.uy + wz * self.uz) * dt,
+      -(wx * self.fx + wy * self.fy + wz * self.fz) * dt
+    )
+    local k = 1 - TUMBLE_DAMP * dt
+    self.wx, self.wy, self.wz = wx * k, wy * k, wz * k
+    if not self.dead then
+      thr = sticks.thr * STRIKE_THRUST
+    end
+  elseif not self.dead then
     self:rotate(pitchRate * RAD * dt, yawRate * RAD * dt, rollRate * RAD * dt)
     thr = sticks.thr
   end
@@ -149,13 +182,58 @@ function Quad:step(dt, sticks, settings)
     end
   end
 
+  self.grounded = false
   if self.py < 0 then
-    if v > CRASH_SPEED or (v > 2 and self.uy < 0.7) or self.uy < TIP_OVER then
+    self.py = 0
+    return self:contact(0, 1, 0, dt, true)
+  end
+end
+
+-- Touching a surface with outward unit normal n, the quad already moved back onto it; soft: the ground. Speed into
+-- it is stopped (bounced back from BOUNCE_SPEED) and friction slows the slide along it. An edge-on hit from
+-- STRIKE_SPEED strikes the props and tumbles the quad about the touching rim. Returns true on a crash.
+function Quad:contact(nx, ny, nz, dt, soft)
+  local vn = -(self.vx * nx + self.vy * ny + self.vz * nz)
+  local floor = ny > FLOOR
+  if floor then
+    self.grounded = true
+  end
+  if vn > 0 then
+    -- Up-axis share along the normal: 1 flat on (the frame takes it), 0 edge-on (the props do)
+    local d = nx * self.ux + ny * self.uy + nz * self.uz
+    local edge = 1 - d * d
+    if edge < 0 then
+      edge = 0
+    end
+    local flat, limit = CRASH_FLAT, CRASH_EDGE
+    if soft then
+      flat, limit = SOFT_FLAT, SOFT_EDGE
+    end
+    if vn > flat + (limit - flat) * edge then
       return true
     end
-    self.py = 0
-    if self.vy < 0 then
-      self.vy = 0
+    local k = vn * (vn > BOUNCE_SPEED and 1 + BOUNCE or 1)
+    self.vx, self.vy, self.vz = self.vx + k * nx, self.vy + k * ny, self.vz + k * nz
+    local vs = vn * sqrt(edge)
+    if vs > STRIKE_SPEED then
+      -- Tumble about u x n, away from the surface; flat-on hits have u x n near zero but no strike either
+      local ax, ay, az = self.uy * nz - self.uz * ny, self.uz * nx - self.ux * nz, self.ux * ny - self.uy * nx
+      local n = sqrt(ax * ax + ay * ay + az * az)
+      if n > 1e-3 then
+        local w = TUMBLE_GAIN * vs
+        w = (w > TUMBLE_MAX and TUMBLE_MAX or w) / n
+        if d < 0 then
+          w = -w
+        end
+        self.wx, self.wy, self.wz = ax * w, ay * w, az * w
+        local t = STRIKE_TIME * vs
+        self.strike = t > STRIKE_MAX and STRIKE_MAX or t
+      end
+    end
+  end
+  if floor then
+    if self.uy < TIP_OVER and self:speed() < REST_SPEED then
+      return true
     end
     local friction = 1 - 6 * dt
     if friction < 0 then
@@ -163,6 +241,10 @@ function Quad:step(dt, sticks, settings)
     end
     self.vx = self.vx * friction
     self.vz = self.vz * friction
+  else
+    -- Walls and ceilings: the slide along them slows
+    local friction = 1 - 3 * dt
+    self.vx, self.vy, self.vz = self.vx * friction, self.vy * friction, self.vz * friction
   end
 end
 

@@ -64,7 +64,13 @@ function Flight.run(event, dt)
     while dt > 0 do
       local h = dt > MAX_STEP and MAX_STEP or dt
       dt = dt - h
-      if quad:step(h, sticks, settings) or Map.collides(quad.px, quad.py, quad.pz) then
+      local ox, oy, oz = quad.px, quad.py, quad.pz
+      local crashed = quad:step(h, sticks, settings)
+      if not crashed then
+        local hit = Map.collides(quad.px, quad.py, quad.pz)
+        crashed = hit == true or hit and Kit.collide(hit, quad, ox, oy, oz, h)
+      end
+      if crashed then
         state = "crashed"
         stateTime = 0
         break
@@ -73,7 +79,7 @@ function Flight.run(event, dt)
     if quad.dead then
       message = "BATTERY EMPTY"
       -- Motors are off: the run ends where the quad comes down, crash or not
-      if state == "flying" and quad.py <= 0 then
+      if state == "flying" and quad.grounded then
         state = "crashed"
         stateTime = 0
       end

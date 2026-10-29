@@ -182,8 +182,16 @@ local function drawBox(b, fogged)
   end
 end
 
+-- Quad radius: boxes collide this far out from their faces, so the camera stays clear of them
+local RADIUS = 0.15
+
 local function insideBox(b, x, y, z)
-  return x > b.x0 and x < b.x1 and z > b.z0 and z < b.z1 and y > b.y0 and y < b.y1
+  return x > b.x0 - RADIUS
+    and x < b.x1 + RADIUS
+    and z > b.z0 - RADIUS
+    and z < b.z1 + RADIUS
+    and y > b.y0 - RADIUS
+    and y < b.y1 + RADIUS
 end
 
 -- Insertion sort on dist, farthest first: the order barely changes between frames, and B&W radios have no
@@ -242,8 +250,9 @@ local function structureCollides(st, x, y, z)
   end
   local parts = st.parts
   for i = 1, #parts do
-    if insideBox(parts[i], x, y, z) then
-      return true
+    local b = parts[i]
+    if insideBox(b, x, y, z) then
+      return b
     end
   end
   return false
@@ -252,7 +261,7 @@ end
 -- Scene: objects drawn back to front, culled to the view, with collision.
 -- Each object has a bounding sphere cx, cy, cz, rad and dist, its squared ground distance from the camera.
 -- Buildings are axis-aligned boxes x0, y0, z0, x1, y1, z1; custom objects carry draw(obj, fogged) and
--- optionally collides(obj, x, y, z) instead.
+-- optionally collides(obj, x, y, z) instead, returning the box it hit, true for a hit with no box, or false.
 function Kit.newScene()
   local objects = {}
   local frame = 0
@@ -348,20 +357,69 @@ function Kit.newScene()
     end
   end
 
+  -- The box at x, y, z, true for a custom object hit with no box, or nil
   function scene.collides(x, y, z)
     for i = 1, #objects do
       local b = objects[i]
       if b.draw then
-        if b.collides and b.collides(b, x, y, z) then
-          return true
+        local hit = b.collides and b.collides(b, x, y, z)
+        if hit then
+          return hit
         end
       elseif insideBox(b, x, y, z) then
-        return true
+        return b
       end
     end
   end
 
   return scene
+end
+
+-- The quad q has moved into box b from ox, oy, oz: it came through the top (a roof to land on) or the bottom if
+-- it was above or below the box, else through the nearest side. Moves it back onto that face and hands the contact
+-- to q:contact; returns true on a crash.
+function Kit.collide(b, q, ox, oy, oz, dt)
+  local y0, y1 = b.y0 - RADIUS, b.y1 + RADIUS
+  if oy >= y1 then
+    q.py = y1
+    return q:contact(0, 1, 0, dt)
+  elseif oy <= y0 then
+    q.py = y0
+    return q:contact(0, -1, 0, dt)
+  end
+  local x0, x1, z0, z1 = b.x0 - RADIUS, b.x1 + RADIUS, b.z0 - RADIUS, b.z1 + RADIUS
+  -- The side it came from, so a fast quad deep into a thin wall is not pushed out the far side; the nearest one
+  -- when it came from a corner or was already inside
+  local outX = ox <= x0 or ox >= x1
+  local outZ = oz <= z0 or oz >= z1
+  local x, z = q.px, q.pz
+  if outX and not outZ then
+    x, z = ox, (z0 + z1) / 2
+  elseif outZ and not outX then
+    x, z = (x0 + x1) / 2, oz
+  end
+  local t, side = x - x0, 1
+  if x1 - x < t then
+    t, side = x1 - x, 2
+  end
+  if z - z0 < t then
+    t, side = z - z0, 3
+  end
+  if z1 - z < t then
+    side = 4
+  end
+  if side == 1 then
+    q.px = x0
+    return q:contact(-1, 0, 0, dt)
+  elseif side == 2 then
+    q.px = x1
+    return q:contact(1, 0, 0, dt)
+  elseif side == 3 then
+    q.pz = z0
+    return q:contact(0, 0, -1, dt)
+  end
+  q.pz = z1
+  return q:contact(0, 0, 1, dt)
 end
 
 -- Launch pad on the ground: a square with a cross, centred on x, z
