@@ -1,6 +1,6 @@
 local app = ...
 
-local gfx, settings, input = app.gfx, app.settings, app.input
+local gfx, settings, input, Sound = app.gfx, app.settings, app.input, app.sound
 local R = app.load("core/render3d")
 local Quad = app.load("core/quad", app.rates)
 local World = app.load("core/world", R)
@@ -20,6 +20,11 @@ local CRASH_HOLD = 0.2
 local ARM_THROTTLE = 0.05
 -- Signal loss at which the warning starts blinking
 local OUT_OF_RANGE = 0.1
+-- Throttle-down reminder: first after NAG_FIRST seconds of arming, then every NAG_EVERY
+local NAG_FIRST, NAG_EVERY = 0.8, 1.5
+-- Low battery beeps: cell voltage under LOW_CELL for LOW_TIME seconds, then every LOW_EVERY, LOW_MAX times; over
+-- LOW_CLEAR it starts over
+local LOW_CELL, LOW_CLEAR, LOW_TIME, LOW_EVERY, LOW_MAX = 3.3, 3.4, 1, 8, 3
 
 local quad = Quad.new()
 local Map, mapId
@@ -30,11 +35,17 @@ local newBest
 -- "arming": waiting for throttle low; "flying"; "crashed"
 local state
 local stateTime = 0
+-- Sound state: next throttle reminder, seconds of low battery and beeps given, battery dead, out of range warned,
+-- the warning blink was on, the map's best when the run started and whether the score has passed it
+local nagAt, lowTime, lowBeeps, dead, warned, blinkOn, runBest, passedBest
 
 local function respawn()
   local s = Map.spawn
   quad:reset(s.x, s.y, s.z, s.heading)
-  state = "arming"
+  state, stateTime, nagAt = "arming", 0, NAG_FIRST
+  lowTime, lowBeeps, dead, warned = 0, 0, false, false
+  runBest, passedBest = app.save.bests[mapId], false
+  Sound.cue("respawn")
   if tricks then
     tricks:reset()
   elseif race then
@@ -47,9 +58,11 @@ end
 local function crash()
   state = "crashed"
   stateTime = 0
+  Sound.crash(quad.dead)
   if tricks then
     local score = tricks.score
     if score > 0 and app.save.record(mapId, score) then
+      Sound.cue("best")
       result = string.format("NEW BEST %d", score)
     else
       result = string.format("PTS %d", score)
@@ -67,8 +80,8 @@ function Flight.enter(entry)
   Map = nil
   Map = app.load("maps/" .. entry.id, World, Scene, Course)
   mapId = entry.id
-  tricks = entry.mode == "freestyle" and app.load("core/tricks", Course).new(Map) or nil
-  race = entry.mode == "racing" and app.load("core/race", Course).new(Map) or nil
+  tricks = entry.mode == "freestyle" and app.load("core/tricks", Course).new(Map, Sound) or nil
+  race = entry.mode == "racing" and app.load("core/race", Course).new(Map, Sound) or nil
   R.setView(0, 0, gfx.W, gfx.H, settings.fov, settings.camAngle)
   respawn()
 end
@@ -79,6 +92,7 @@ function Flight.run(event, dt)
       app.save.record(mapId, tricks.score)
     end
     Map, tricks, race = nil, nil, nil
+    Sound.stop()
     return "menu"
   end
 
@@ -92,8 +106,14 @@ function Flight.run(event, dt)
     quad.throttle = sticks.thr
     if sticks.thr < ARM_THROTTLE then
       state = "flying"
+      Sound.cue("armed")
     else
       message = "THROTTLE DOWN"
+      stateTime = stateTime + dt
+      if stateTime >= nagAt then
+        nagAt = nagAt + NAG_EVERY
+        Sound.cue("throttle")
+      end
     end
   elseif state == "flying" then
     Map.update(dt, quad)
@@ -112,6 +132,27 @@ function Flight.run(event, dt)
         break
       end
     end
+    if state == "flying" then
+      Sound.contact(quad.hit, quad.struck)
+      Sound.motor(quad, frame)
+      local v = quad.voltage
+      if quad.dead then
+        if not dead then
+          dead = true
+          Sound.cue("empty")
+        end
+      elseif v < LOW_CELL then
+        lowTime = lowTime + frame
+        if lowBeeps < LOW_MAX and lowTime >= LOW_TIME + LOW_EVERY * lowBeeps then
+          lowBeeps = lowBeeps + 1
+          -- Three beeps
+          Sound.cue("low", 2)
+        end
+      elseif v > LOW_CLEAR then
+        lowTime, lowBeeps = 0, 0
+      end
+    end
+    quad.hit, quad.struck = 0, 0
     if quad.dead then
       message = "BATTERY EMPTY"
       -- Motors are off: the run ends where the quad comes down, crash or not
@@ -121,6 +162,10 @@ function Flight.run(event, dt)
     end
     if tricks and state == "flying" then
       tricks:update(frame, quad)
+      if runBest and not passedBest and tricks.score > runBest then
+        passedBest = true
+        Sound.cue("record")
+      end
     elseif race and state == "flying" then
       race:update(frame, quad)
       -- Lap times are kept in hundredths, lowest best
@@ -129,6 +174,9 @@ function Flight.run(event, dt)
         race.finished = nil
         if app.save.record(mapId, math.floor(lap * 100 + 0.5), true) then
           newBest = true
+          Sound.cue("bestLap")
+        else
+          Sound.cue("lap")
         end
       end
     end
@@ -143,6 +191,20 @@ function Flight.run(event, dt)
   -- Loss rises with the square of distance past the fade start: a slow onset, then a quick breakup
   local loss = Map.signalLoss(quad.px, quad.py, quad.pz)
   loss = loss * loss
+  local blink = getTime() % 100 < 60
+  if state == "flying" then
+    Sound.crackle(loss)
+    if loss > OUT_OF_RANGE then
+      if blink and not blinkOn then
+        warned = true
+        Sound.cue("range")
+      end
+    elseif warned then
+      warned = false
+      Sound.cue("link")
+    end
+  end
+  blinkOn = blink
   if state == "crashed" then
     local hit = stateTime < CRASH_HOLD and 1 or (CRASH_SHOW - stateTime) / (CRASH_SHOW - CRASH_HOLD)
     if hit > loss then
@@ -160,7 +222,7 @@ function Flight.run(event, dt)
   end
   if loss > 0 then
     gfx.static(loss)
-    if not message and loss > OUT_OF_RANGE and getTime() % 100 < 60 then
+    if not message and loss > OUT_OF_RANGE and blink then
       message = "OUT OF RANGE"
     end
   end

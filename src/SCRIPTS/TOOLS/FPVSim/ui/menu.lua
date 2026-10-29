@@ -38,6 +38,7 @@ function Menu.run(event)
     elseif #item.maps > 0 then
       return "maps", item.maps
     end
+    app.sound.cue("deny")
   end
   app.menuSelected = List.move(app.menuSelected, event, #ITEMS)
   item = ITEMS[app.menuSelected]

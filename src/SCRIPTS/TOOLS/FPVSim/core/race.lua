@@ -12,9 +12,9 @@ local LAP_SHOW = 2
 local Race = {}
 Race.__index = Race
 
--- map.gates: Course.addGate openings in course order
-function Race.new(map)
-  local r = setmetatable({ gates = map.gates }, Race)
+-- map.gates: Course.addGate openings in course order; sound: platform/sound, optional
+function Race.new(map, sound)
+  local r = setmetatable({ gates = map.gates, sound = sound }, Race)
   r:reset()
   return r
 end
@@ -51,8 +51,12 @@ function Race:update(dt, q)
         end
         self.lapNote = format("LAP %d %.2fS", self.lap, t)
         self.show = LAP_SHOW
+      elseif self.sound then
+        self.sound.cue("start")
       end
       self.lap, self.time = self.lap + 1, 0
+    elseif self.sound then
+      self.sound.gate(self.next, n)
     end
     self.next = self.next % n + 1
     g = gates[self.next]

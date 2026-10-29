@@ -118,6 +118,27 @@ function H.install(w, h)
   getTime = function()
     return H.time
   end
+  -- Audio calls in order: { "tone", f, d, p, flags, slide, volume }, { "haptic", d, p, flags }, { "flush" }. As on
+  -- the radio, a fraction in any argument is an error.
+  PLAY_NOW, PLAY_BACKGROUND = 16, 32
+  H.audio = {}
+  local function record(kind, ...)
+    for i, v in ipairs({ ... }) do
+      if math.type(v) ~= "integer" and not (math.type(v) == "float" and v == math.floor(v)) then
+        error(string.format("%s argument %d has no integer representation: %s", kind, i, tostring(v)), 3)
+      end
+    end
+    H.audio[#H.audio + 1] = { kind, ... }
+  end
+  playTone = function(...)
+    record("tone", ...)
+  end
+  playHaptic = function(...)
+    record("haptic", ...)
+  end
+  flushAudio = function()
+    H.audio[#H.audio + 1] = { "flush" }
+  end
   H.files = {}
   -- EdgeTX io: io.read(f, n), io.write(f, ...), io.close(f)
   io = {

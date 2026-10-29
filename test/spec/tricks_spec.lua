@@ -39,14 +39,27 @@ local sticks = { ail = 0, ele = 0, rud = 0, thr = HOVER }
 
 local q, t
 local notes
+-- The sound cues asked for, as "trick roll 2 1", "tick hangTick 0", "cue lost"
+local cues
+local sound = {
+  trick = function(name, n, mult)
+    cues[#cues + 1] = string.format("trick %s %d %d", name, n or 1, mult)
+  end,
+  tick = function(name, k)
+    cues[#cues + 1] = string.format("tick %s %d", name, k)
+  end,
+  cue = function(name)
+    cues[#cues + 1] = "cue " .. name
+  end,
+}
 
 -- At x, y, z (x and z default 0), flying north at v m/s
 local function start(y, v, x, z)
   q = Quad.new()
   q:reset(x or 0, y, z or 0, 0)
   q.vz = v or 0
-  t = Tricks.new(map)
-  notes = {}
+  t = Tricks.new(map, sound)
+  notes, cues = {}, {}
 end
 
 -- Flies the frame loop for s seconds with the given sticks, in 50 ms frames of 10 ms steps
@@ -63,9 +76,18 @@ local function fly(s, ail, ele, thr, rud)
   end
 end
 
--- Score, multiplier and the notes shown, for a failure
+-- Score, multiplier, the notes shown and the cues, for a failure
 local function state()
-  return string.format("score=%d x%d | %s", t.score, t.mult, table.concat(notes, " / "))
+  return string.format("score=%d x%d | %s | %s", t.score, t.mult, table.concat(notes, " / "), table.concat(cues, " / "))
+end
+
+local function cued(cue)
+  for _, c in ipairs(cues) do
+    if c == cue then
+      return true
+    end
+  end
+  return false
 end
 
 local function noted(trick)
@@ -87,11 +109,13 @@ describe("tricks", function()
       assert.equal(10, t.score, state())
       assert.equal("PTS 10", t.goal, state())
       assert.equal(1, t.mult, state())
+      assert.is_true(cued("trick flip 1 1"), state())
     end)
     it("the combo ends after its time", function()
       fly(3)
       assert.equal(10, t.score, state())
       assert.equal(0, t.mult, state())
+      assert.is_false(cued("cue bank"), "a combo of one trick is not banked")
     end)
     it("a double roll", function()
       start(30)
@@ -99,6 +123,7 @@ describe("tricks", function()
       fly(0.3)
       assert.equal(30, t.score, state())
       assert.is_true(noted("DOUBLE ROLL +30"), state())
+      assert.is_true(cued("trick roll 2 1"), state())
     end)
     it("a flip then a roll: the roll x2", function()
       start(30)
@@ -108,6 +133,11 @@ describe("tricks", function()
       fly(0.3)
       assert.equal(10 + 20, t.score, state())
       assert.is_true(noted("ROLL +20 x2"), state())
+      assert.is_true(cued("trick roll 1 2"), state())
+    end)
+    it("the combo of two is banked when it ends", function()
+      fly(3)
+      assert.is_true(cued("cue bank"), state())
     end)
     it("tilting about is no trick", function()
       start(30)
@@ -131,6 +161,7 @@ describe("tricks", function()
       assert.equal(30, t.score, state())
       assert.equal(0, t.mult, state())
       assert.is_true(noted("COMBO LOST"), state())
+      assert.is_true(cued("cue lost"), state())
     end)
     it("and the next trick starts at x1", function()
       fly(0.55, 0, 1)
@@ -203,6 +234,8 @@ describe("tricks", function()
       fly(0.27, 1, 0)
       fly(0.5)
       assert.is_true(noted("HANG 1."), state())
+      assert.is_true(cued("tick hangTick 0"), state())
+      assert.is_true(cued("trick hang 1 1"), state())
     end)
     it("a knife edge", function()
       start(30, 15)
@@ -245,6 +278,7 @@ describe("tricks", function()
       q:rotate(0, 0, math.pi)
       fly(0.5, 0, 0, 0)
       assert.is_true(noted("INVERTED WINDOW +20"), state())
+      assert.is_true(cued("trick gapInverted 1 1"), state())
     end)
     it("into the wall beside the window is no gap", function()
       start(6, 10, 6, 10)

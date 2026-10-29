@@ -19,6 +19,9 @@ local values = {
   -- Diagonal, in degrees
   fov = 95,
   fps = false,
+  -- 2 ALL, 1 NO MOTOR (event cues only), 0 OFF
+  sound = 1,
+  haptic = true,
   -- Control axes: the input each one reads (getValue source names) and whether it is reversed
   rollSrc = "ail",
   pitchSrc = "ele",
@@ -31,7 +34,7 @@ local values = {
 }
 
 -- The editable ones, in menu order: a list of choices (with optional display labels) or a min/max/step range
--- (with an optional printf format and scale for display)
+-- (with an optional printf format and scale for display); preview: changing it plays a sample
 local ON_OFF = { "ON", "OFF" }
 local RC_RATE = { min = 1, max = 200, step = 1, format = "%.2f", scale = 0.01 }
 local HUNDREDTHS = { min = 0, max = 100, step = 1, format = "%.2f", scale = 0.01 }
@@ -76,6 +79,8 @@ local items = {
   { key = "angleMode", label = "MODE", choices = { false, true }, labels = { "ACRO", "ANGLE" } },
   { key = "batterySim", label = "BATTERY", choices = { true, false }, labels = ON_OFF },
   { key = "fps", label = "FPS", choices = { true, false }, labels = ON_OFF },
+  { key = "sound", label = "SOUND", choices = { 2, 1, 0 }, labels = { "ALL", "NO MOTOR", "OFF" }, preview = true },
+  { key = "haptic", label = "HAPTIC", choices = { true, false }, labels = ON_OFF, preview = true },
   { label = "RATES", page = rates },
   { label = "CONTROLS", page = controls },
 }

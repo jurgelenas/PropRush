@@ -53,9 +53,9 @@ local TIMES = { "", "DOUBLE ", "TRIPLE " }
 local Tricks = {}
 Tricks.__index = Tricks
 
--- map: its gaps (Course.gap) and near(x, y, z, dist), both optional
-function Tricks.new(map)
-  local t = setmetatable({ gaps = map and map.gaps, near = map and map.near }, Tricks)
+-- map: its gaps (Course.gap) and near(x, y, z, dist), both optional; sound: platform/sound, optional
+function Tricks.new(map, sound)
+  local t = setmetatable({ gaps = map and map.gaps, near = map and map.near, sound = sound }, Tricks)
   t:reset()
   return t
 end
@@ -83,7 +83,8 @@ function Tricks:show(note)
   self.note, self.noteTime = note, NOTE_TIME
 end
 
-function Tricks:award(name, points)
+-- cue: the sound's trick motif, n: its turns
+function Tricks:award(name, points, cue, n)
   self.lastGap = nil
   if self.mult < MULT_MAX then
     self.mult = self.mult + 1
@@ -97,12 +98,26 @@ function Tricks:award(name, points)
   else
     self:show(format("%s +%d", name, points))
   end
+  if self.sound then
+    self.sound.trick(cue, n, self.mult)
+  end
+end
+
+-- A hold trick of t seconds, qualifying at min, ticks every half second from then on
+function Tricks:holdTick(cue, t, dt, min)
+  local a = t - min
+  if self.sound and a >= 0 and (a * 2) // 1 ~= ((a - dt) * 2) // 1 then
+    self.sound.tick(cue, (a * 2) // 1)
+  end
 end
 
 -- Ends the combo still running
 function Tricks:drop()
   if self.mult > 1 then
     self:show("COMBO LOST")
+    if self.sound then
+      self.sound.cue("lost")
+    end
   end
   self.mult = 0
 end
@@ -124,24 +139,24 @@ function Tricks:endTurn(q)
   local dot = q.vx * svx + q.vz * svz
   local fast = s2 >= LOOP_SPEED * LOOP_SPEED
   if flips == 1 and rolls == 0 and fast and self.reversed and dot > 0 and self.top - self.sy >= LOOP_RISE then
-    self:award("POWER LOOP", LOOP_POINTS)
+    self:award("POWER LOOP", LOOP_POINTS, "loop")
   elseif n > 0 then
-    local name
+    local name, cue
     if flips > 0 and rolls > 0 then
-      name = "FLIP+ROLL"
+      name, cue = "FLIP+ROLL", "flipRoll"
     elseif flips > 0 then
-      name = named(n, self.pitch > 0 and "BACKFLIP" or "FRONTFLIP")
+      name, cue = named(n, self.pitch > 0 and "BACKFLIP" or "FRONTFLIP"), "flip"
     else
-      name = named(n, "ROLL")
+      name, cue = named(n, "ROLL"), "roll"
     end
-    self:award(name, TURN_POINTS * n * (n + 1) // 2)
+    self:award(name, TURN_POINTS * n * (n + 1) // 2, cue, cue ~= "flipRoll" and n or 1)
   elseif
     fast
     and self.sy - q.py >= SPLIT_DROP
     and dot < 0
     and dot * dot >= COS2_135 * s2 * (q.vx * q.vx + q.vz * q.vz)
   then
-    self:award("SPLIT-S", SPLIT_POINTS)
+    self:award("SPLIT-S", SPLIT_POINTS, "splitS")
   end
 end
 
@@ -158,9 +173,9 @@ function Tricks:gapsFlown(q)
     local g = gaps[i]
     if g ~= self.lastGap and through(g, ox, oy, oz, px, py, pz) then
       if q.uy < INVERTED then
-        self:award("INVERTED " .. g.name, 2 * g.points)
+        self:award("INVERTED " .. g.name, 2 * g.points, "gapInverted")
       else
-        self:award(g.name, g.points)
+        self:award(g.name, g.points, "gap")
       end
       self.lastGap = g
     end
@@ -190,6 +205,9 @@ function Tricks:update(dt, q)
   if self.mult > 0 then
     self.comboTime = self.comboTime - dt
     if self.comboTime <= 0 then
+      if self.mult > 1 and self.sound then
+        self.sound.cue("bank")
+      end
       self.mult, self.lastGap = 0, nil
     end
   end
@@ -244,9 +262,9 @@ function Tricks:flight(dt, q, dPitch, dRoll, dYaw)
     if n > 0 then
       local points = TURN_POINTS * n * (n + 1) // 2
       if self.trippy then
-        self:award(named(n, "TRIPPY SPIN"), 2 * points)
+        self:award(named(n, "TRIPPY SPIN"), 2 * points, "trippy", n)
       else
-        self:award(named(n, "YAW SPIN"), points)
+        self:award(named(n, "YAW SPIN"), points, "yaw", n)
       end
     end
     self.yaw, self.trippy = 0, true
@@ -254,9 +272,10 @@ function Tricks:flight(dt, q, dPitch, dRoll, dYaw)
 
   if uy < HANG_UY then
     self.hang = self.hang + dt
+    self:holdTick("hangTick", self.hang, dt, HANG_TIME)
   else
     if self.hang >= HANG_TIME then
-      self:award(format("HANG %.1fS", self.hang), floor(self.hang * HANG_POINTS))
+      self:award(format("HANG %.1fS", self.hang), floor(self.hang * HANG_POINTS), "hang")
     end
     self.hang = 0
   end
@@ -273,9 +292,10 @@ function Tricks:flight(dt, q, dPitch, dRoll, dYaw)
       self.kfx, self.kfz = fx, fz
     end
     self.knife = self.knife + dt
+    self:holdTick("knifeTick", self.knife, dt, KNIFE_TIME)
   else
     if self.knife >= KNIFE_TIME then
-      self:award(format("KNIFE EDGE %.1fS", self.knife), floor(self.knife * KNIFE_POINTS))
+      self:award(format("KNIFE EDGE %.1fS", self.knife), floor(self.knife * KNIFE_POINTS), "knife")
     end
     self.knife = 0
   end
@@ -285,9 +305,10 @@ function Tricks:flight(dt, q, dPitch, dRoll, dYaw)
     local vx, vy, vz = q.vx, q.vy, q.vz
     if vx * vx + vy * vy + vz * vz > PROXY_SPEED * PROXY_SPEED and near(q.px, q.py, q.pz, PROXY_DIST) then
       self.proxy = self.proxy + dt
+      self:holdTick("proxyTick", self.proxy, dt, PROXY_TIME)
     else
       if self.proxy >= PROXY_TIME then
-        self:award(format("PROXIMITY %.1fS", self.proxy), floor(self.proxy * PROXY_POINTS))
+        self:award(format("PROXIMITY %.1fS", self.proxy), floor(self.proxy * PROXY_POINTS), "proxy")
       end
       self.proxy = 0
     end
@@ -308,7 +329,7 @@ function Tricks:flight(dt, q, dPitch, dRoll, dYaw)
       self.diving = false
       local drop = floor(self.diveTop - q.py)
       if drop >= DIVE_DROP and self.diveSpeed >= DIVE_SPEED and self.noseDown then
-        self:award(format("DIVE %dM", drop), drop * DIVE_POINTS)
+        self:award(format("DIVE %dM", drop), drop * DIVE_POINTS, "dive")
       end
     end
   end
