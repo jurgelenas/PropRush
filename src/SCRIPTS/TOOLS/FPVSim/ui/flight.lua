@@ -27,50 +27,31 @@ local NAG_FIRST, NAG_EVERY = 0.8, 1.5
 local LOW_CELL, LOW_CLEAR, LOW_TIME, LOW_EVERY, LOW_MAX = 3.3, 3.4, 1, 8, 3
 
 local quad = Quad.new()
-local Map, mapId
--- Freestyle maps: scoring; racing maps: the gates and lap clock. result: the crash screen's line
-local tricks, race, result
--- A lap this run beat the map's best
-local newBest
+local Map
+-- Freestyle maps: core/tricks, the scoring; racing maps: core/race, the gates and lap clock. Either keeps the
+-- map's best and gives the HUD its goal, note and clock.
+local mode
 -- "arming": waiting for throttle low; "flying"; "crashed"
 local state
 local stateTime = 0
 -- Sound state: next throttle reminder, seconds of low battery and beeps given, battery dead, out of range warned,
--- the warning blink was on, the map's best when the run started and whether the score has passed it
-local nagAt, lowTime, lowBeeps, dead, warned, blinkOn, runBest, passedBest
+-- the warning blink was on
+local nagAt, lowTime, lowBeeps, dead, warned, blinkOn
 
 local function respawn()
   local s = Map.spawn
   quad:reset(s.x, s.y, s.z, s.heading)
   state, stateTime, nagAt = "arming", 0, NAG_FIRST
   lowTime, lowBeeps, dead, warned = 0, 0, false, false
-  runBest, passedBest = app.save.bests[mapId], false
   Sound.cue("respawn")
-  if tricks then
-    tricks:reset()
-  elseif race then
-    race:reset()
-    newBest = false
-  end
+  mode:reset()
 end
 
--- The run ends: the score is kept if it is the map's best
 local function crash()
   state = "crashed"
   stateTime = 0
   Sound.crash(quad.dead)
-  if tricks then
-    local score = tricks.score
-    if score > 0 and app.save.record(mapId, score) then
-      Sound.cue("best")
-      result = string.format("NEW BEST %d", score)
-    else
-      result = string.format("PTS %d", score)
-    end
-  elseif race then
-    local best = race.best
-    result = best and string.format(newBest and "NEW BEST %.2fS" or "BEST LAP %.2fS", best) or "NO LAP"
-  end
+  mode:finish()
 end
 
 local Flight = {}
@@ -79,19 +60,17 @@ local Flight = {}
 function Flight.enter(entry)
   Map = nil
   Map = app.load("maps/" .. entry.id, World, Scene, Course)
-  mapId = entry.id
-  tricks = entry.mode == "freestyle" and app.load("core/tricks", Course).new(Map, Sound) or nil
-  race = entry.mode == "racing" and app.load("core/race", Course).new(Map, Sound) or nil
+  mode = app.load(entry.mode == "racing" and "core/race" or "core/tricks", Course).new(Map, Sound, app.save, entry.id)
   R.setView(0, 0, gfx.W, gfx.H, settings.fov, settings.camAngle)
   respawn()
 end
 
 function Flight.run(event, dt)
   if event == EVT_VIRTUAL_EXIT then
-    if tricks and state ~= "crashed" and tricks.score > 0 then
-      app.save.record(mapId, tricks.score)
+    if state ~= "crashed" then
+      mode:keep()
     end
-    Map, tricks, race = nil, nil, nil
+    Map, mode = nil, nil
     Sound.stop()
     return "menu"
   end
@@ -161,25 +140,8 @@ function Flight.run(event, dt)
         crash()
       end
     end
-    if tricks and state == "flying" then
-      tricks:update(frame, quad, fx, fy, fz)
-      if runBest and not passedBest and tricks.score > runBest then
-        passedBest = true
-        Sound.cue("record")
-      end
-    elseif race and state == "flying" then
-      race:update(frame, quad, fx, fy, fz)
-      -- Lap times are kept in hundredths, lowest best
-      local lap = race.finished
-      if lap then
-        race.finished = nil
-        if app.save.record(mapId, math.floor(lap * 100 + 0.5), true) then
-          newBest = true
-          Sound.cue("bestLap")
-        else
-          Sound.cue("lap")
-        end
-      end
+    if state == "flying" then
+      mode:update(frame, quad, fx, fy, fz)
     end
   else
     stateTime = stateTime + dt
@@ -217,9 +179,7 @@ function Flight.run(event, dt)
   if loss < 1 then
     R.setCamera(quad)
     Map.draw(settings.quality)
-    if race then
-      race:drawMarker(R, gfx)
-    end
+    mode:draw(R, gfx)
   end
   if loss > 0 then
     gfx.static(loss)
@@ -227,16 +187,7 @@ function Flight.run(event, dt)
       message = "OUT OF RANGE"
     end
   end
-  local goal, note, clock
-  local scoring = tricks or race
-  if scoring then
-    goal = scoring.goal
-    note = state == "crashed" and result or scoring.note
-  end
-  if race then
-    clock = race.clock
-  end
-  Hud.draw(quad, settings, goal, message, note, clock)
+  Hud.draw(quad, settings, mode.goal, message, mode.note, mode.clock)
 end
 
 return Flight

@@ -53,15 +53,19 @@ local TIMES = { "", "DOUBLE ", "TRIPLE " }
 local Tricks = {}
 Tricks.__index = Tricks
 
--- map: its gaps (Course.gap) and near(x, y, z, dist), both optional; sound: platform/sound, optional
-function Tricks.new(map, sound)
-  local t = setmetatable({ gaps = map and map.gaps, near = map and map.near, sound = sound }, Tricks)
+-- map: its gaps (Course.gap) and near(x, y, z, dist), both optional; sound: platform/sound, optional; save:
+-- core/save, id: the map's key there
+function Tricks.new(map, sound, save, id)
+  local t =
+    setmetatable({ gaps = map and map.gaps, near = map and map.near, sound = sound, save = save, id = id }, Tricks)
   t:reset()
   return t
 end
 
 function Tricks:reset()
   self.score = 0
+  -- The map's best when the run started, and whether the score has passed it
+  self.runBest, self.passedBest = self.save.bests[self.id], false
   -- HUD strings, rebuilt only when they change: goal "PTS n" and note, the latest trick or banked combo
   self.goal = "PTS 0"
   self.note, self.noteTime = nil, 0
@@ -97,8 +101,16 @@ function Tricks:award(name, points, cue, n)
   else
     self:show(format("%s +%d", name, points))
   end
-  if self.sound then
-    self.sound.trick(cue, n, self.mult)
+  local sound = self.sound
+  if sound then
+    sound.trick(cue, n, self.mult)
+  end
+  local best = self.runBest
+  if best and not self.passedBest and self.score > best then
+    self.passedBest = true
+    if sound then
+      sound.cue("record")
+    end
   end
 end
 
@@ -327,5 +339,24 @@ function Tricks:flight(dt, q, dPitch, dRoll, dYaw)
     end
   end
 end
+
+-- Keeps the run's score if it is the map's best; true when it was
+function Tricks:keep()
+  return self.score > 0 and self.save.record(self.id, self.score)
+end
+
+-- The run ended in a crash: the score is kept and shown on the note line
+function Tricks:finish()
+  if self:keep() then
+    if self.sound then
+      self.sound.cue("best")
+    end
+    self.note = format("NEW BEST %d", self.score)
+  else
+    self.note = format("PTS %d", self.score)
+  end
+end
+
+function Tricks:draw() end
 
 return Tricks

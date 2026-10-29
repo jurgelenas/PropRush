@@ -71,7 +71,7 @@ for _, id in ipairs({ "pillars", "bando", "gates" }) do
     if race then
       -- Through the start gate, so the marker is on gate 2
       race.next = 2
-      race:drawMarker(R, gfx)
+      race:draw(R, gfx)
     end
     local loss = Map.signalLoss(q.px, q.py, q.pz) ^ 2
     if loss > 0 then

@@ -11,9 +11,14 @@ local Course = assert(loadfile(SRC .. "core/course.lua"))(R, Scene)
 local Race = assert(loadfile(SRC .. "core/race.lua"))(Course)
 local Quad = assert(loadfile(SRC .. "core/quad.lua"))(assert(loadfile(SRC .. "core/rates.lua"))())
 local Map = assert(loadfile(SRC .. "maps/gates.lua"))(World, Scene, Course)
+local save = assert(loadfile(SRC .. "core/save.lua"))({
+  write = function()
+    return true
+  end,
+}, {}, {})
 local gates = Map.gates
 
-local r = Race.new(Map)
+local r = Race.new(Map, nil, save, "gates")
 local p = { px = 0, py = 1.5, pz = 0 }
 
 -- Frames of dt seconds standing still at x, y, z, the first moving there from the last
@@ -57,7 +62,7 @@ local function fly(x, y, z, vx, vz, t)
   local q = Quad.new()
   q:reset(x, y, z, 0)
   q.vx, q.vz = vx, vz
-  r = Race.new(Map)
+  r = Race.new(Map, nil, save, "gates")
   for _ = 1, t / 0.05 do
     local fx, fy, fz = q.px, q.py, q.pz
     for _ = 1, 5 do
@@ -114,13 +119,13 @@ describe("racing", function()
     end)
     it("closes through the start gate and shows its time", function()
       pass(1)
-      assert.near(t + 0.1, r.finished, 1e-6, state())
-      assert.equal(r.finished, r.best, state())
+      assert.near(t + 0.1, r.last, 1e-6, state())
+      assert.equal(r.last, r.best, state())
+      assert.equal(math.floor((t + 0.1) * 100 + 0.5), save.bests.gates, state())
       assert.equal(string.format("LAP 1 %.2fS", t + 0.1), r.note, state())
       assert.matches("^2/6 ", r.goal, state())
     end)
     it("keeps a faster lap as the best", function()
-      r.finished = nil
       for i = 2, 6 do
         pass(i)
       end
@@ -134,11 +139,16 @@ describe("racing", function()
       at(0, 1.5, 0, 100)
       pass(1)
       assert.near(0.6, r.best, 1e-6, state())
-      assert.is_true(r.finished > 5, state())
+      assert.is_true(r.last > 5, state())
+      assert.equal(60, save.bests.gates, state())
     end)
     it("drops the lap time after 2 s", function()
       at(0, 1.5, 0, 40)
       assert.is_nil(r.note, state())
+    end)
+    it("shows its best lap after a crash", function()
+      r:finish()
+      assert.equal("NEW BEST 0.60S", r.note, state())
     end)
   end)
 
