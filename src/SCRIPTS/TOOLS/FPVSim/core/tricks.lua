@@ -74,9 +74,8 @@ function Tricks:reset()
   self.hang = 0
   self.knife, self.kfx, self.kfz = 0, 0, 0
   self.proxy = 0
-  -- Position on the last frame, and the gap scored last: flown again in the same combo with nothing between, it
-  -- scores nothing
-  self.ox, self.oy, self.oz, self.lastGap = nil, nil, nil, nil
+  -- The gap scored last: flown again in the same combo with nothing between, it scores nothing
+  self.lastGap = nil
 end
 
 function Tricks:show(note)
@@ -160,14 +159,9 @@ function Tricks:endTurn(q)
   end
 end
 
--- Gaps flown through since the last frame; upside down they score double
-function Tricks:gapsFlown(q)
-  local ox, oy, oz = self.ox, self.oy, self.oz
+-- Gaps flown through from ox, oy, oz this frame; upside down they score double
+function Tricks:gapsFlown(q, ox, oy, oz)
   local px, py, pz = q.px, q.py, q.pz
-  self.ox, self.oy, self.oz = px, py, pz
-  if not ox then
-    return
-  end
   local gaps = self.gaps
   for i = 1, #gaps do
     local g = gaps[i]
@@ -182,8 +176,8 @@ function Tricks:gapsFlown(q)
   end
 end
 
--- Once per frame of flight, after the physics
-function Tricks:update(dt, q)
+-- Once per frame of flight, after the physics; ox, oy, oz: where the quad was before it
+function Tricks:update(dt, q, ox, oy, oz)
   local dPitch, dRoll, dYaw = q.turnPitch, q.turnRoll, q.turnYaw
   q.turnPitch, q.turnRoll, q.turnYaw = 0, 0, 0
 
@@ -194,10 +188,9 @@ function Tricks:update(dt, q)
     self.pitch, self.roll, self.inverted, self.turning = 0, 0, false, false
     self.diving = false
     self.yaw, self.trippy, self.hang, self.knife, self.proxy = 0, true, 0, 0, 0
-    self.ox = nil
   else
     if self.gaps then
-      self:gapsFlown(q)
+      self:gapsFlown(q, ox, oy, oz)
     end
     self:flight(dt, q, dPitch, dRoll, dYaw)
   end
