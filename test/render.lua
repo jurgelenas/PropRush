@@ -13,6 +13,7 @@ local Kit = load("core/kit", R)
 local settings = load("core/settings")
 local Hud = load("ui/hud", gfx)
 R.setSink(gfx)
+R.setView(0, 0, LCD_W, LCD_H, settings.fov, settings.camAngle)
 
 -- Per map: name, x, y, z, heading, pitchUp(rad), rollRight(rad)
 local MAPS = {
@@ -52,7 +53,7 @@ for _, id in ipairs({ "pillars", "bando" }) do
     q:reset(p[2], p[3], p[4], p[5])
     q:rotate(p[6], 0, p[7])
     lcd.clear()
-    R.setCamera(q, settings.camAngle, 0, 0, LCD_W, LCD_H, settings.fov)
+    R.setCamera(q)
     Map.draw(settings.quality)
     local loss = Map.signalLoss(q.px, q.py, q.pz) ^ 2
     if loss > 0 then

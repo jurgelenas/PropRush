@@ -5,7 +5,7 @@ local gfx, List = app.gfx, app.list
 local ITEMS = {
   { label = "RACING", mode = "racing", info = { "Fly the gates", "against the", "clock" } },
   { label = "FREESTYLE", mode = "freestyle", info = { "Gaps, dives", "and flying", "close" } },
-  { label = "SETTINGS", info = { "Camera,", "quality,", "mode, rates" } },
+  { label = "SETTINGS", info = { "Camera, FOV,", "quality,", "mode, rates" } },
 }
 
 for _, item in ipairs(ITEMS) do

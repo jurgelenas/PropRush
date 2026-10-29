@@ -34,6 +34,7 @@ local Flight = {}
 function Flight.enter(entry)
   Map = nil
   Map = app.load("maps/" .. entry.id, Kit, R)
+  R.setView(0, 0, gfx.W, gfx.H, settings.fov, settings.camAngle)
   respawn()
 end
 
@@ -89,7 +90,7 @@ function Flight.run(event, dt)
 
   gfx.clear()
   if loss < 1 then
-    R.setCamera(quad, settings.camAngle, 0, 0, gfx.W, gfx.H, settings.fov)
+    R.setCamera(quad)
     Map.draw(settings.quality)
   end
   if loss > 0 then

@@ -66,7 +66,7 @@ local function drawCameraPreview(x, y)
   gfx.line(qx - 9, qy - 2, qx - 4, qy - 2, 4)
   gfx.line(qx + 4, qy - 2, qx + 9, qy - 2, 4)
   local cam = settings.camAngle * RAD
-  local half = math.atan(H / W)
+  local half = math.atan(math.tan(settings.fov * RAD / 2) * H / math.sqrt(W * W + H * H))
   local len = PREVIEW_W - 16
   local cx, cy = qx + 4, qy - 1
   gfx.line(cx, cy, cx + math.cos(cam) * len, cy - math.sin(cam) * len, 4)

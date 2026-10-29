@@ -58,7 +58,8 @@ print("PROF map " .. id)
 for _, p in ipairs(POSES) do
   q:reset(p[2], p[3], p[4], p[5])
   q:rotate(-p[6], 0, 0)
-  R.setCamera(q, 25, 0, 0, LCD_W, LCD_H, 90)
+  R.setView(0, 0, LCD_W, LCD_H, 95, 25)
+  R.setCamera(q)
   local parts = {}
   for qual = 1, 3 do
     H.resetStats()

@@ -77,9 +77,9 @@ function Kit.drawGrid(quality, step)
 end
 
 -- Horizon ring: a ridge and its base line around the camera. It follows the camera, so it is never reached.
--- Ring points more than ~70 degrees off the view direction are skipped (dot product): the screen corners are under
--- 50 degrees off it, and ring points are at most ~20 degrees apart, so a segment reaching into view is kept.
-local RING_CULL = 0.35
+-- Ring points further off the view direction than the screen corners plus RING_MARGIN are skipped: ring points
+-- are at most ~20 degrees apart, so a segment reaching into view is kept.
+local RING_MARGIN = 22 * math.pi / 180
 
 -- The base is a circle on the ground, nearly straight on screen, so it is drawn as a coarse polygon of its own
 -- instead of through every ridge point: 20 degree chords sag under a third of a pixel
@@ -105,13 +105,13 @@ end
 Kit.HILLS = Kit.newRing({ 1.5, 3, 2, 4.5, 3.5, 1, 2.5, 5, 3, 2, 1, 3.5, 6, 4, 2, 1.5, 3, 2, 4, 2.5, 1, 3, 4.5, 2 })
 
 -- Closed loop of ring points at distance dist from the camera, at their elevations (tans) or on the ground
-local function drawLoop(loop, tans, dist, ox, oz, fx, fz)
+local function drawLoop(loop, tans, dist, ox, oz, fx, fz, cull)
   local n, sins, coss = loop.n, loop.sin, loop.cos
   local prev, px, py, pz
   for i = 0, n do
     local k = i == 0 and n or i
     local s, c = sins[k], coss[k]
-    if s * fx + c * fz > RING_CULL then
+    if s * fx + c * fz > cull then
       local x, y, z = R.toCamera(ox + dist * s, tans and dist * tans[k] or 0, oz + dist * c)
       if prev then
         R.camLine(px, py, pz, x, y, z, 4)
@@ -131,8 +131,10 @@ function Kit.drawRing(ring, dist)
     fx, fz, len = 0, 1, 1
   end
   fx, fz = fx / len, fz / len
-  drawLoop(BASE, nil, dist, ox, oz, fx, fz)
-  drawLoop(ring, ring.tan, dist, ox, oz, fx, fz)
+  local reach = R.cornerAngle() + RING_MARGIN
+  local cull = reach < math.pi and math.cos(reach) or -1
+  drawLoop(BASE, nil, dist, ox, oz, fx, fz, cull)
+  drawLoop(ring, ring.tan, dist, ox, oz, fx, fz, cull)
 end
 
 -- Full detail within DRAW_DIST, fogged out to OUTLINE_FACTOR times that: no pop-in

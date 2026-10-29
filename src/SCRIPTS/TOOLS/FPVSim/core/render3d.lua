@@ -21,8 +21,12 @@ local sink
 local ox, oy, oz
 local rx, ry, rz, ux, uy, uz, fx, fy, fz
 local focal, cx, cy
+-- Camera uptilt
+local tiltSin, tiltCos
 -- View cone slopes: |x| <= z * tanX and |y| <= z * tanY are on screen
 local tanX, tanY
+-- Angle between the view direction and the screen corners, in radians
+local cornerAngle
 
 local CX, CY, CZ = {}, {}, {}
 local KX, KY, KZ = {}, {}, {}
@@ -35,19 +39,25 @@ function R.setSink(s)
   sink = s
 end
 
--- Camera sits at the quad, tilted up by camDeg about the body right axis.
--- vx, vy, vw, vh: viewport in pixels. fovDeg: horizontal field of view.
-function R.setCamera(q, camDeg, vx, vy, vw, vh, fovDeg)
-  local s, c = sin(camDeg * RAD), cos(camDeg * RAD)
-  ox, oy, oz = q.px, q.py + 0.05, q.pz
-  rx, ry, rz = q.rx, q.ry, q.rz
-  fx, fy, fz = q.fx * c + q.ux * s, q.fy * c + q.uy * s, q.fz * c + q.uz * s
-  ux, uy, uz = q.ux * c - q.fx * s, q.uy * c - q.fy * s, q.uz * c - q.fz * s
-  focal = (vw / 2) / tan(fovDeg * RAD / 2)
+-- Viewport, lens and camera uptilt, fixed for a flight: vx, vy, vw, vh in pixels, fovDeg the diagonal field of
+-- view (as FPV cameras are specified), camDeg the tilt up about the body right axis
+function R.setView(vx, vy, vw, vh, fovDeg, camDeg)
+  focal = math.sqrt(vw * vw + vh * vh) / 2 / tan(fovDeg * RAD / 2)
   cx = vx + vw / 2
   cy = vy + vh / 2
   tanX = (vw / 2) / focal
   tanY = (vh / 2) / focal
+  cornerAngle = math.atan(math.sqrt(tanX * tanX + tanY * tanY))
+  tiltSin, tiltCos = sin(camDeg * RAD), cos(camDeg * RAD)
+end
+
+-- Camera at the quad q, tilted as set by setView
+function R.setCamera(q)
+  local s, c = tiltSin, tiltCos
+  ox, oy, oz = q.px, q.py + 0.05, q.pz
+  rx, ry, rz = q.rx, q.ry, q.rz
+  fx, fy, fz = q.fx * c + q.ux * s, q.fy * c + q.uy * s, q.fz * c + q.uz * s
+  ux, uy, uz = q.ux * c - q.fx * s, q.uy * c - q.fy * s, q.uz * c - q.fz * s
 end
 
 -- Conservative test for a bounding sphere: false only when it is entirely off screen.
@@ -69,6 +79,11 @@ end
 
 function R.focal()
   return focal
+end
+
+-- Largest angle off the view direction that is still on screen (the corners), in radians
+function R.cornerAngle()
+  return cornerAngle
 end
 
 -- Camera forward direction in world space
