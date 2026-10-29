@@ -20,7 +20,9 @@ local function each(list, fn)
 end
 
 local function parse(item, s)
-  if item.choices then
+  if item.source then
+    return #s <= 16 and string.match(s, "^[%w%-]+$") and s or nil
+  elseif item.choices then
     for _, c in ipairs(item.choices) do
       if tostring(c) == s then
         return c

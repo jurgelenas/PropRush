@@ -3,7 +3,7 @@
 
 local app = ...
 
-local gfx, List, Save, settings, stickRate = app.gfx, app.list, app.save, app.settings, app.rates
+local gfx, List, Save, settings, stickRate, input = app.gfx, app.list, app.save, app.settings, app.rates, app.input
 
 local ROW_H = 8
 local PREVIEW_W, PREVIEW_H = 42, 34
@@ -11,6 +11,14 @@ local RAD = math.pi / 180
 
 -- RATE_STEPS segments draw the rate curve
 local RATE_STEPS = 12
+
+local Sources = app.load("platform/sources", input)
+-- The radio's sources, listed when first shown
+local sourceList
+local function sourcesNow()
+  sourceList = sourceList or Sources.list()
+  return sourceList
+end
 
 local TOP = { items = app.settingItems, title = "SETTINGS" }
 -- Current page: items and title; selection, scroll position and the page it was opened from
@@ -29,6 +37,8 @@ local function valueText(item)
   local v = settings[item.key]
   if item.page then
     return ">"
+  elseif item.source then
+    return Sources.label(sourcesNow(), v)
   elseif item.labels then
     return item.labels[indexOf(item.choices, v)]
   elseif item.format then
@@ -40,7 +50,10 @@ end
 -- Choices wrap around; ranges stop at their ends
 local function change(item, d)
   local v = settings[item.key]
-  if item.choices then
+  if item.source then
+    local names = sourcesNow().names
+    settings[item.key] = names[(indexOf(names, v) - 1 + d) % #names + 1]
+  elseif item.choices then
     local n = #item.choices
     settings[item.key] = item.choices[(indexOf(item.choices, v) - 1 + d) % n + 1]
   else
@@ -93,6 +106,24 @@ local function drawRatePreview(x, y, keys)
   gfx.text(x + 2, y + 2, string.format("%d", math.floor(full + 0.5)))
 end
 
+-- The two gimbals as the quad reads them, mode 2 order: yaw and throttle left, roll and pitch right
+local GIMBAL = 20
+local function drawGimbal(x, y, sx, sy)
+  gfx.line(x, y, x + GIMBAL - 1, y, 4)
+  gfx.line(x + GIMBAL - 1, y, x + GIMBAL - 1, y + GIMBAL - 1, 4)
+  gfx.line(x + GIMBAL - 1, y + GIMBAL - 1, x, y + GIMBAL - 1, 4)
+  gfx.line(x, y + GIMBAL - 1, x, y, 4)
+  local half = (GIMBAL - 5) / 2
+  gfx.rect(x + 1 + math.floor(half * (sx + 1) + 0.5), y + 1 + math.floor(half * (1 - sy) + 0.5), 3, 3, 4)
+end
+
+local function drawSticksPreview(x, y)
+  local s = input.read()
+  y = y + (PREVIEW_H - GIMBAL) // 2
+  drawGimbal(x, y, s.rud, s.thr * 2 - 1)
+  drawGimbal(x + PREVIEW_W - GIMBAL + 1, y, s.ail, s.ele)
+end
+
 local function open(items, title, parent)
   page = { items = items, title = title, selected = 1, first = 1, parent = parent }
 end
@@ -114,6 +145,13 @@ function Settings.run(event)
       local d = List.step(event)
       if d ~= 0 then
         change(item, d)
+      elseif item.source then
+        -- Moving a stick, pot or slider picks it
+        local name = Sources.moved(sourceList)
+        if name then
+          settings[item.key] = name
+          Sources.snapshot(sourceList)
+        end
       end
     end
   elseif event == EVT_VIRTUAL_EXIT then
@@ -128,6 +166,9 @@ function Settings.run(event)
       open(item.page, item.label, page)
     else
       editing = true
+      if item.source then
+        Sources.snapshot(sourcesNow())
+      end
     end
   else
     page.selected = List.move(page.selected, event, #items)
@@ -150,13 +191,15 @@ function Settings.run(event)
     local y = List.TOP + 1 + (i - first) * ROW_H
     local it = items[i]
     local sel = i == selected
-    List.row(y, ROW_H - 1, listW, it.label, sel and not editing)
+    List.row(y, ROW_H, listW, it.label, sel and not editing)
     -- Selected: the whole row is inverted; editing: only the value
     gfx.text(listW - 1, y + 1, valueText(it), "r", nil, sel)
   end
   local axis = items[selected].axis
   if axis then
     drawRatePreview(W - PREVIEW_W - 1, List.TOP + 2, axis)
+  elseif items[selected].sticks then
+    drawSticksPreview(W - PREVIEW_W - 1, List.TOP + 2)
   else
     drawCameraPreview(W - PREVIEW_W - 1, List.TOP + 2)
   end

@@ -26,6 +26,7 @@ check(settings.camAngle == 45 and settings.angleMode == false, "missing file kee
 
 -- Round trip
 settings.camAngle, settings.angleMode, settings.batterySim, settings.rollExpo = 63, true, false, 54
+settings.rollSrc, settings.thrSrc, settings.thrRev = "ch3", "ch1", true
 Save.record("pillars", 1200)
 check(Save.record("pillars", 900) == false, "lower score does not beat a higher best")
 check(Save.record("pillars", 1500) == true, "higher score beats the best")
@@ -35,16 +36,18 @@ Save.load()
 check(settings.camAngle == 63, "camAngle restored")
 check(settings.angleMode == true and settings.batterySim == false, "booleans restored")
 check(settings.rollExpo == 54, "expo restored")
+check(settings.rollSrc == "ch3" and settings.thrSrc == "ch1" and settings.thrRev == true, "control mapping restored")
 check(Save.bests.pillars == 1500 and Save.bests.gates == 42.5, "bests restored")
 
 -- Damaged file: bad values ignored, good ones kept
 H.files[PATH] = "camAngle=999\nquality=7\nangleMode=maybe\nrollRcRate=abc\n\0\1junk\nrollRate=12.5\n"
-  .. "yawRcRate=150\nbest.pillars=77\nbest.x=notanumber\n"
+  .. "yawRcRate=150\nbest.pillars=77\nbest.x=notanumber\nrollSrc=../x\nyawSrc=ch2\n"
 settings, Save = fresh()
 Save.load()
 check(settings.camAngle == 45 and settings.quality == 3 and settings.angleMode == false, "out-of-range values ignored")
 check(settings.rollRcRate == 100 and settings.rollRate == 70, "non-numeric and off-step values ignored")
 check(settings.yawRcRate == 150, "valid value next to junk kept")
+check(settings.rollSrc == "ail" and settings.yawSrc == "ch2", "malformed control source ignored")
 check(Save.bests.pillars == 77 and Save.bests.x == nil, "only numeric bests kept")
 
 print(failures == 0 and "SAVE OK" or string.format("SAVE %d FAILED", failures))

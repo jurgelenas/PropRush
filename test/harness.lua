@@ -11,6 +11,19 @@ local SRC = "src"
 H.stats = { lines = 0, linePixels = 0, texts = 0, rects = 0 }
 H.sticks = { ail = 0, ele = 0, thr = -1024, rud = 0 }
 H.time = 0
+H.SOURCES = {
+  { 75, "rud", "Rud" },
+  { 76, "ele", "Ele" },
+  { 77, "thr", "Thr" },
+  { 78, "ail", "\200Ail" },
+  { 79, "s1", "S1" },
+  { 80, "s2", "S2" },
+  { 87, "min", "MIN" },
+  { 98, "SA", "SA" },
+  { 198, "ch1", "CH1" },
+  { 199, "ch2", "CH2" },
+  { 200, "ch3", "CH3" },
+}
 H.text = {}
 H.fb = {}
 
@@ -75,8 +88,32 @@ function H.install(w, h)
       H.text[s.texts] = text
     end,
   }
-  getValue = function(name)
-    return H.sticks[name]
+  -- Sources as a Boxer lists them: id, getValue name, label
+  local byId, byName = {}, {}
+  for _, src in ipairs(H.SOURCES) do
+    local f = { id = src[1], name = src[2], label = src[3] }
+    byId[f.id], byName[f.name] = f, f
+  end
+  getFieldInfo = function(source)
+    local f = byId[source] or byName[source]
+    return f and { id = f.id, name = f.name, desc = f.label }
+  end
+  getSourceName = function(id)
+    return byId[id] and byId[id].label
+  end
+  sources = function()
+    local i = 0
+    return function()
+      i = i + 1
+      local src = H.SOURCES[i]
+      if src then
+        return src[1], src[3]
+      end
+    end
+  end
+  getValue = function(source)
+    local f = byId[source]
+    return H.sticks[f and f.name or source] or 0
   end
   getTime = function()
     return H.time
@@ -111,7 +148,6 @@ function H.install(w, h)
     return assert(loadfile(SRC .. path))
   end
 end
-
 
 -- Mirrors lcdDrawLine: Bresenham, pattern bit chosen by the major axis coordinate % 8
 function H.plotLine(x1, y1, x2, y2, pat, flags)
