@@ -89,4 +89,7 @@ for _, p in ipairs(POSES) do
   q:reset(p[2], p[3], p[4], p[5])
   print(string.format("PROF %-8s %s | physStep=%.0f%%", p[1], table.concat(parts, " "), 100 * phys / budget))
 end
+for _, amount in ipairs({ 0.25, 0.5, 0.99, 1 }) do
+  print(string.format("PROF static(%.2f)=%.0f%%", amount, 100 * time(function() gfx.static(amount) end) / budget))
+end
 exit(0)

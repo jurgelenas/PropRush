@@ -13,6 +13,8 @@ local MAX_STEP = 0.02
 local MAX_FRAME = 0.1
 local CRASH_SHOW = 1.5
 local ARM_THROTTLE = 0.05
+-- Signal loss at which the warning starts blinking
+local OUT_OF_RANGE = 0.1
 
 local quad = Quad.new()
 -- "arming": waiting for throttle low; "flying"; "crashed"
@@ -71,9 +73,21 @@ function Flight.run(event, dt)
     end
   end
 
+  -- Loss rises with the square of distance past the fade start: a slow onset, then a quick breakup
+  local loss = World.signalLoss(quad.px, quad.py, quad.pz)
+  loss = loss * loss
+
   gfx.clear()
-  R.setCamera(quad, settings.camAngle, 0, 0, gfx.W, gfx.H, settings.fov)
-  World.draw(settings.quality)
+  if loss < 1 then
+    R.setCamera(quad, settings.camAngle, 0, 0, gfx.W, gfx.H, settings.fov)
+    World.draw(settings.quality)
+  end
+  if loss > 0 then
+    gfx.static(loss)
+    if not message and loss > OUT_OF_RANGE and getTime() % 100 < 60 then
+      message = "OUT OF RANGE"
+    end
+  end
   Hud.draw(quad, settings, nil, message)
 end
 

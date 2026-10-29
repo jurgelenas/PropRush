@@ -23,6 +23,9 @@ local World = {
   spawn = { x = 0, y = 0, z = 0, heading = 0 },
 }
 
+-- Video link: clean within FADE of the map centre, fully lost at LOST (3D distance from the centre on the ground)
+local RANGE_X, RANGE_Z, RANGE_FADE, RANGE_LOST = 0, 60, 150, 400
+
 -- Axis-aligned boxes: x0, y0, z0, x1, y1, z1
 local boxes = {}
 
@@ -196,6 +199,18 @@ function World.drawBoxes(quality)
       end
     end
   end
+end
+
+-- Video signal loss at a point: 0 clean .. 1 lost
+function World.signalLoss(x, y, z)
+  local dx, dz = x - RANGE_X, z - RANGE_Z
+  local d = math.sqrt(dx * dx + y * y + dz * dz)
+  if d <= RANGE_FADE then
+    return 0
+  elseif d >= RANGE_LOST then
+    return 1
+  end
+  return (d - RANGE_FADE) / (RANGE_LOST - RANGE_FADE)
 end
 
 function World.collides(x, y, z)

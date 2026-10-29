@@ -252,6 +252,53 @@ function Gfx.line(x1, y1, x2, y2, shade)
   )
 end
 
+-- Analog video static, in noise cells of NOISE_CELL pixels, each cell one random drawLine pattern byte.
+-- A random offset into the table per row reshuffles the noise every frame for one math.random call per row.
+local NOISE_CELL, NOISE_N = 16, 64
+local NOISE, SPARSE = {}, {}
+for i = 1, NOISE_N do
+  NOISE[i] = math.random(0, 255)
+end
+-- A quarter of the dots, for light static
+for i = 1, NOISE_N do
+  SPARSE[i] = NOISE[i] & NOISE[(i + 6) % NOISE_N + 1]
+end
+local CELLS = (W + NOISE_CELL - 1) // NOISE_CELL
+local random = math.random
+
+-- Cells c0 .. c0 + n - 1 of row y
+local function noiseRun(y, c0, n, noise)
+  local k = random(NOISE_N)
+  for c = c0, c0 + n - 1 do
+    local x = c * NOISE_CELL
+    local xr = x + NOISE_CELL - 1
+    drawLine(x, y, xr > XMAX and XMAX or xr, y, noise[k], FORCE)
+    k = k % NOISE_N + 1
+  end
+end
+
+-- amount 0..1: every row gets a burst of noise covering on average that share of it, sparse below 0.7;
+-- 1 is snow over the whole screen
+function Gfx.static(amount)
+  if amount >= 1 then
+    for y = 0, YMAX do
+      noiseRun(y, 0, CELLS, NOISE)
+    end
+    return
+  end
+  local noise = amount < 0.7 and SPARSE or NOISE
+  local maxRun = floor(amount * 2 * CELLS)
+  for y = 0, YMAX do
+    local n = random(0, maxRun)
+    if n > CELLS then
+      n = CELLS
+    end
+    if n > 0 then
+      noiseRun(y, random(0, CELLS - n), n, noise)
+    end
+  end
+end
+
 function Gfx.clear()
   lcd.clear()
 end
