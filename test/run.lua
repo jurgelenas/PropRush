@@ -13,4 +13,5 @@ for file in ls:lines() do
 end
 ls:close()
 
+local exit = exit or os.exit
 exit(Spec.run(files) and 0 or 1)
