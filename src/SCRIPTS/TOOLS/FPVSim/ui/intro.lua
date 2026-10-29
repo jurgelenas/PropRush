@@ -1,6 +1,7 @@
 local app = ...
 
 local gfx = app.gfx
+local version = app.load("version")
 
 local Intro = {}
 
@@ -14,6 +15,7 @@ function Intro.run(event)
   local W, FH = gfx.W, gfx.FH
   gfx.clear()
   gfx.text(W / 2, 2, "FPV SIM", "c", true)
+  gfx.text(W - 1, 2, version, "r")
   gfx.text(W / 2, 14, "WARNING: your sticks still", "c")
   gfx.text(W / 2, 14 + FH + 1, "drive the model outputs.", "c")
   gfx.text(W / 2, 14 + 2 * (FH + 1), "Disarm or turn RF off.", "c")
