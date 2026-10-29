@@ -12,6 +12,8 @@ local MAX_STEP = 0.02
 -- Frames longer than this (menu pauses, load hitches) are not simulated in full
 local MAX_FRAME = 0.1
 local CRASH_SHOW = 1.5
+-- Crash static: full snow for CRASH_HOLD seconds, then fading out until the respawn
+local CRASH_HOLD = 0.2
 local ARM_THROTTLE = 0.05
 -- Signal loss at which the warning starts blinking
 local OUT_OF_RANGE = 0.1
@@ -87,6 +89,12 @@ function Flight.run(event, dt)
   -- Loss rises with the square of distance past the fade start: a slow onset, then a quick breakup
   local loss = Map.signalLoss(quad.px, quad.py, quad.pz)
   loss = loss * loss
+  if state == "crashed" then
+    local hit = stateTime < CRASH_HOLD and 1 or (CRASH_SHOW - stateTime) / (CRASH_SHOW - CRASH_HOLD)
+    if hit > loss then
+      loss = hit
+    end
+  end
 
   gfx.clear()
   if loss < 1 then
