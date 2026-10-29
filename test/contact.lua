@@ -5,10 +5,10 @@ H.install(128, 64)
 
 local CORE = "src/SCRIPTS/TOOLS/FPVSim/core/"
 local R = assert(loadfile(CORE .. "render3d.lua"))()
-local Kit = assert(loadfile(CORE .. "kit.lua"))(R)
+local Scene = assert(loadfile(CORE .. "scene.lua"))(R)
 local Quad = assert(loadfile(CORE .. "quad.lua"))(assert(loadfile(CORE .. "rates.lua"))())
 
-local scene = Kit.newScene()
+local scene = Scene.new()
 -- A 10 m cube north of the origin and a thin wall east of it
 scene.addBox(0, 20, 10, 10, 10)
 local wall = scene.addStructure()
@@ -38,7 +38,7 @@ local function fly(p, v, t, thr)
     local crashed = q:step(h, sticks, settings)
     if not crashed then
       local hit = scene.collides(q.px, q.py, q.pz)
-      crashed = hit == true or hit and Kit.collide(hit, q, ox, oy, oz, h)
+      crashed = hit == true or hit and Scene.collide(hit, q, ox, oy, oz, h)
     end
     if q.strike > struck then
       struck = q.strike

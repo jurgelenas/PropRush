@@ -1,10 +1,10 @@
 -- Racing: the map's gates in order, the first being start and finish. The clock starts through the first gate and
 -- each pass through it after all the others closes a lap. Only the next gate is tested, one plane a frame.
 
-local Kit = ...
+local Course = ...
 
 local format, floor, sqrt = string.format, math.floor, math.sqrt
-local through = Kit.through
+local through = Course.through
 
 -- Seconds a lap time stays on the note line
 local LAP_SHOW = 2
@@ -12,7 +12,7 @@ local LAP_SHOW = 2
 local Race = {}
 Race.__index = Race
 
--- map.gates: Kit.addGate openings in course order
+-- map.gates: Course.addGate openings in course order
 function Race.new(map)
   local r = setmetatable({ gates = map.gates }, Race)
   r:reset()

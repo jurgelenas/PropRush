@@ -1,6 +1,6 @@
 -- Gates: a six-gate loop round a tower on open fields, low and high gates and a hard turn back to the start.
 
-local Kit = ...
+local World, Scene, Course = ...
 
 local Map = {
   spawn = { x = 0, y = 0, z = 0, heading = 0 },
@@ -9,7 +9,7 @@ local Map = {
 -- Ground grid spacing: wider than the default, so the gates stand out from the ground
 local GRID = 60
 
-local scene = Kit.newScene()
+local scene = Scene.new()
 Map.scene = scene
 
 -- Openings 3 x 2.4 m: as {x, z, bottom height, frame along x (flown north or south)} in course order
@@ -25,7 +25,7 @@ local COURSE = {
 }
 local gates = {}
 for i = 1, #COURSE, 4 do
-  gates[#gates + 1] = Kit.addGate(scene, COURSE[i], COURSE[i + 1], W, H, COURSE[i + 2], COURSE[i + 3])
+  gates[#gates + 1] = Course.addGate(scene, COURSE[i], COURSE[i + 1], W, H, COURSE[i + 2], COURSE[i + 3])
 end
 Map.gates = gates
 
@@ -34,9 +34,9 @@ scene.addBox(75, 90, 12, 10, 8)
 scene.addBox(-20, 70, 8, 14, 6)
 
 function Map.draw(quality)
-  Kit.drawGrid(quality, GRID)
-  Kit.drawRing(Kit.HILLS, Kit.horizon(quality))
-  Kit.drawPad(0, 0)
+  World.drawGrid(quality, GRID)
+  World.drawRing(World.HILLS, World.horizon(quality))
+  World.drawPad(0, 0)
   scene.draw(quality)
 end
 
@@ -48,7 +48,7 @@ end
 
 -- Video link: clean within 150 m of the tower, lost at 400 m
 function Map.signalLoss(x, y, z)
-  return Kit.rangeLoss(x, y, z, 32, 40, 150, 400)
+  return World.rangeLoss(x, y, z, 32, 40, 150, 400)
 end
 
 return Map

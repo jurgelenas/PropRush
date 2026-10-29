@@ -3,7 +3,9 @@ local app = ...
 local gfx, settings, input = app.gfx, app.settings, app.input
 local R = app.load("core/render3d")
 local Quad = app.load("core/quad", app.rates)
-local Kit = app.load("core/kit", R)
+local World = app.load("core/world", R)
+local Scene = app.load("core/scene", R)
+local Course = app.load("core/course", R, Scene)
 local Hud = app.load("ui/hud", gfx)
 
 R.setSink(gfx)
@@ -63,10 +65,10 @@ local Flight = {}
 -- entry: the map's catalogue entry
 function Flight.enter(entry)
   Map = nil
-  Map = app.load("maps/" .. entry.id, Kit, R)
+  Map = app.load("maps/" .. entry.id, World, Scene, Course)
   mapId = entry.id
-  tricks = entry.mode == "freestyle" and app.load("core/tricks", Kit).new(Map) or nil
-  race = entry.mode == "racing" and app.load("core/race", Kit).new(Map) or nil
+  tricks = entry.mode == "freestyle" and app.load("core/tricks", Course).new(Map) or nil
+  race = entry.mode == "racing" and app.load("core/race", Course).new(Map) or nil
   R.setView(0, 0, gfx.W, gfx.H, settings.fov, settings.camAngle)
   respawn()
 end
@@ -103,7 +105,7 @@ function Flight.run(event, dt)
       local crashed = quad:step(h, sticks, settings)
       if not crashed then
         local hit = Map.collides(quad.px, quad.py, quad.pz)
-        crashed = hit == true or hit and Kit.collide(hit, quad, ox, oy, oz, h)
+        crashed = hit == true or hit and Scene.collide(hit, quad, ox, oy, oz, h)
       end
       if crashed then
         crash()
