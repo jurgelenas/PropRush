@@ -118,8 +118,10 @@ end
 
 local q, crashed = fly(0, 1.7, 0, 0, 10, 2)
 check("flown through the start gate", not crashed and r.lap == 1 and r.goal:sub(1, 4) == "2/6 ", state())
-q, crashed = fly(1.65, 1.7, 0, 0, 10, 2)
-check("into its post is a crash", crashed and q.pz < 12, state())
+q, crashed = fly(1.65, 1.7, 6, 0, 8, 2)
+check("into its post at 8 m/s is a prop strike", not crashed and q.pz < 12, state())
+q, crashed = fly(1.65, 1.7, 6, 0, 15, 2)
+check("  at 15 m/s a crash", crashed and q.pz < 12, state())
 q, crashed = fly(0, 3.3, 0, 0, 10, 2)
 check("over it is no pass", r.lap == 0, state())
 

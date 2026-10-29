@@ -77,17 +77,17 @@ local q, crashed, struck
 q, crashed, struck = fly({ 0, 0.5, 0 }, { 0, -3, 0 }, 1, 0)
 check("flat drop at 3 m/s lands", not crashed and struck == 0 and q.py == 0, state(q, crashed, struck))
 
-q, crashed, struck = fly({ 0, 1, 0 }, { 0, -10, 0 }, 1, 0)
-check("flat onto grass at 10 m/s survives", not crashed, state(q, crashed, struck))
+q, crashed, struck = fly({ 0, 1, 0 }, { 0, -18, 0 }, 1, 0)
+check("flat onto grass at 18 m/s survives", not crashed, state(q, crashed, struck))
 
-q, crashed, struck = fly({ 0, 1, 0 }, { 0, -13, 0 }, 1, 0)
-check("flat onto grass at 13 m/s crashes", crashed, state(q, crashed, struck))
+q, crashed, struck = fly({ 0, 1, 0 }, { 0, -21, 0 }, 1, 0)
+check("flat onto grass at 21 m/s crashes", crashed, state(q, crashed, struck))
 
-q, crashed, struck = fly({ 0, 11, 20 }, { 0, -7, 0 }, 1, 0)
-check("flat onto a roof at 7 m/s survives", not crashed, state(q, crashed, struck))
+q, crashed, struck = fly({ 0, 11, 20 }, { 0, -12.5, 0 }, 1, 0)
+check("flat onto a roof at 12.5 m/s survives", not crashed, state(q, crashed, struck))
 
-q, crashed, struck = fly({ 0, 11, 20 }, { 0, -9, 0 }, 1, 0)
-check("flat onto a roof at 9 m/s crashes", crashed, state(q, crashed, struck))
+q, crashed, struck = fly({ 0, 11, 20 }, { 0, -15, 0 }, 1, 0)
+check("flat onto a roof at 15 m/s crashes", crashed, state(q, crashed, struck))
 
 q, crashed, struck = fly({ 0, 0.3, 0 }, { 15, -1, 0 }, 0.5)
 check("skimming the ground at 15 m/s survives", not crashed, state(q, crashed, struck))
@@ -96,8 +96,11 @@ q, crashed, struck = fly({ 0, 3, 13 }, { 0, 0, 4 }, 0.5)
 check("level into a wall at 4 m/s strikes the props", not crashed and struck > 0, state(q, crashed, struck))
 check("  and bounces back off it", q.vz < 0 and q.pz < 15 - 0.15 + 1e-9, state(q, crashed, struck))
 
-q, crashed, struck = fly({ 0, 3, 13 }, { 0, 0, 6 }, 0.5)
-check("level into a wall at 6 m/s breaks a prop", crashed, state(q, crashed, struck))
+q, crashed, struck = fly({ 0, 3, 13 }, { 0, 0, 9 }, 0.5)
+check("level into a wall at 9 m/s survives a strike", not crashed and struck > 0.4, state(q, crashed, struck))
+
+q, crashed, struck = fly({ 0, 3, 13 }, { 0, 0, 11 }, 0.5)
+check("level into a wall at 11 m/s breaks a prop", crashed, state(q, crashed, struck))
 
 q, crashed, struck = fly({ 0, 0.3, 0 }, { 6, -6, 0 }, 0.5, 0)
 check("6 m/s down onto grass, level, no strike", not crashed and struck == 0, state(q, crashed, struck))
