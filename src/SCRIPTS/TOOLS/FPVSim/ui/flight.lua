@@ -57,7 +57,7 @@ function Flight.enter(entry)
   Map = nil
   Map = app.load("maps/" .. entry.id, Kit, R)
   mapId = entry.id
-  tricks = entry.mode == "freestyle" and app.load("core/tricks").new() or nil
+  tricks = entry.mode == "freestyle" and app.load("core/tricks").new(Map) or nil
   R.setView(0, 0, gfx.W, gfx.H, settings.fov, settings.camAngle)
   respawn()
 end

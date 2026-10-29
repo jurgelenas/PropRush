@@ -35,6 +35,9 @@ local HANG_UY, HANG_TIME, HANG_POINTS = -0.7, 1, 10
 -- Knife edge: right axis within ~25 degrees of vertical, over KNIFE_SPEED m/s level, the nose holding its heading
 -- within ~30 degrees (in a banked turn it swings round), for KNIFE_TIME seconds or more, KNIFE_POINTS a second
 local KNIFE_RY, KNIFE_SPEED, KNIFE_TIME, KNIFE_POINTS = 0.9, 10, 0.8, 15
+-- Proximity: a surface (a building, not the ground: skimming that is easy) within PROXY_DIST metres while faster
+-- than PROXY_SPEED m/s, for PROXY_TIME seconds or more, PROXY_POINTS a second
+local PROXY_DIST, PROXY_SPEED, PROXY_TIME, PROXY_POINTS = 1.5, 8, 0.5, 20
 -- cos^2 of 30 and 135 degrees, for direction checks on squared dot products
 local COS2_30, COS2_135 = 0.75, 0.5
 local COMBO_TIME = 3
@@ -46,8 +49,9 @@ local TIMES = { "", "DOUBLE ", "TRIPLE " }
 local Tricks = {}
 Tricks.__index = Tricks
 
-function Tricks.new()
-  local t = setmetatable({}, Tricks)
+-- map: its gaps (Kit.gap) and near(x, y, z, dist), both optional
+function Tricks.new(map)
+  local t = setmetatable({ gaps = map and map.gaps, near = map and map.near }, Tricks)
   t:reset()
   return t
 end
@@ -65,6 +69,10 @@ function Tricks:reset()
   self.yaw, self.trippy = 0, true
   self.hang = 0
   self.knife, self.kfx, self.kfz = 0, 0, 0
+  self.proxy = 0
+  -- Position on the last frame, and the gap scored last: flown again in the same combo with nothing between, it
+  -- scores nothing
+  self.ox, self.oy, self.oz, self.lastGap = nil, nil, nil, nil
 end
 
 function Tricks:show(note)
@@ -72,6 +80,7 @@ function Tricks:show(note)
 end
 
 function Tricks:award(name, points)
+  self.lastGap = nil
   if self.mult < MULT_MAX then
     self.mult = self.mult + 1
   end
@@ -132,6 +141,48 @@ function Tricks:endTurn(q)
   end
 end
 
+-- Whether the path from o to p crosses gap g's rectangle
+local function through(g, ox, oy, oz, px, py, pz)
+  local a, b, u, u1, v, v1
+  local axis = g.axis
+  if axis == 1 then
+    a, b, u, u1, v, v1 = ox, px, oy, py, oz, pz
+  elseif axis == 2 then
+    a, b, u, u1, v, v1 = oy, py, ox, px, oz, pz
+  else
+    a, b, u, u1, v, v1 = oz, pz, ox, px, oy, py
+  end
+  local at = g.at
+  if (a < at) == (b < at) then
+    return false
+  end
+  local t = (at - a) / (b - a)
+  u, v = u + (u1 - u) * t, v + (v1 - v) * t
+  return u > g.u0 and u < g.u1 and v > g.v0 and v < g.v1
+end
+
+-- Gaps flown through since the last frame; upside down they score double
+function Tricks:gapsFlown(q)
+  local ox, oy, oz = self.ox, self.oy, self.oz
+  local px, py, pz = q.px, q.py, q.pz
+  self.ox, self.oy, self.oz = px, py, pz
+  if not ox then
+    return
+  end
+  local gaps = self.gaps
+  for i = 1, #gaps do
+    local g = gaps[i]
+    if g ~= self.lastGap and through(g, ox, oy, oz, px, py, pz) then
+      if q.uy < INVERTED then
+        self:award("INVERTED " .. g.name, 2 * g.points)
+      else
+        self:award(g.name, g.points)
+      end
+      self.lastGap = g
+    end
+  end
+end
+
 -- Once per frame of flight, after the physics
 function Tricks:update(dt, q)
   local dPitch, dRoll, dYaw = q.turnPitch, q.turnRoll, q.turnYaw
@@ -143,15 +194,19 @@ function Tricks:update(dt, q)
     end
     self.pitch, self.roll, self.inverted, self.turning = 0, 0, false, false
     self.diving = false
-    self.yaw, self.trippy, self.hang, self.knife = 0, true, 0, 0
+    self.yaw, self.trippy, self.hang, self.knife, self.proxy = 0, true, 0, 0, 0
+    self.ox = nil
   else
+    if self.gaps then
+      self:gapsFlown(q)
+    end
     self:flight(dt, q, dPitch, dRoll, dYaw)
   end
 
   if self.mult > 0 then
     self.comboTime = self.comboTime - dt
     if self.comboTime <= 0 then
-      self.mult = 0
+      self.mult, self.lastGap = 0, nil
     end
   end
   if self.note then
@@ -239,6 +294,19 @@ function Tricks:flight(dt, q, dPitch, dRoll, dYaw)
       self:award(format("KNIFE EDGE %.1fS", self.knife), floor(self.knife * KNIFE_POINTS))
     end
     self.knife = 0
+  end
+
+  local near = self.near
+  if near then
+    local vx, vy, vz = q.vx, q.vy, q.vz
+    if vx * vx + vy * vy + vz * vz > PROXY_SPEED * PROXY_SPEED and near(q.px, q.py, q.pz, PROXY_DIST) then
+      self.proxy = self.proxy + dt
+    else
+      if self.proxy >= PROXY_TIME then
+        self:award(format("PROXIMITY %.1fS", self.proxy), floor(self.proxy * PROXY_POINTS))
+      end
+      self.proxy = 0
+    end
   end
 
   if not self.diving then
