@@ -4,6 +4,9 @@ local format, floor = string.format, math.floor
 
 local Hud = {}
 
+-- Tenths of a volt per cell
+local LOW_CELL = 33
+
 -- Strings are rebuilt only when the shown number changes
 local batVal, batStr, altVal, altStr, spdVal, spdStr
 
@@ -12,11 +15,14 @@ function Hud.draw(q, settings, goal, message)
   local W, H, FH = gfx.W, gfx.H, gfx.FH
 
   gfx.rect(0, 0, W, FH + 1, 0)
-  local bat = floor(q.battery * 100 + 0.5)
+  local bat = floor(q.voltage * 10 + 0.5)
   if bat ~= batVal then
-    batVal, batStr = bat, format("BAT %d%%", bat)
+    batVal, batStr = bat, format("%.1fV", bat / 10)
   end
-  gfx.text(1, 1, batStr)
+  -- Blinks below LOW_CELL like a flight controller OSD warning
+  if bat >= LOW_CELL or getTime() % 100 < 60 then
+    gfx.text(1, 1, batStr)
+  end
   gfx.text(W / 2, 1, settings.angleMode and "ANGLE" or "ACRO", "c")
   if goal then
     gfx.text(W - 1, 1, goal, "r")

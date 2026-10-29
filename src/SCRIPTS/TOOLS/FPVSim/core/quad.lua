@@ -10,6 +10,13 @@ local DRAG = 0.04
 local ANGLE_GAIN = 8
 -- Full-throttle battery life in seconds
 local BATTERY_LIFE = 150
+-- LiPo cell: resting voltage at 0 %, 10 % .. 100 % charge
+local CELL_CURVE = { [0] = 3.0, 3.61, 3.69, 3.71, 3.73, 3.77, 3.79, 3.84, 3.92, 4.03, 4.2 }
+local CELL_FULL = 4.2
+-- Loaded cell voltage at which the flight controller browns out and the motors stop for good
+local CELL_CUTOFF = 3.1
+-- Voltage sag at full throttle on a full pack, growing by SAG_EMPTY as it drains; settles at SAG_RATE per second
+local SAG_FULL, SAG_EMPTY, SAG_RATE = 0.15, 0.2, 8
 local CRASH_SPEED = 6
 
 local Quad = {}
@@ -44,6 +51,9 @@ function Quad:reset(x, y, z, headingDeg)
   self.ux, self.uy, self.uz = 0, 1, 0
   self.fx, self.fy, self.fz = s, 0, c
   self.battery = 1
+  self.sag = 0
+  self.voltage = CELL_FULL
+  self.dead = false
   self.throttle = 0
 end
 
@@ -102,11 +112,15 @@ function Quad:step(dt, sticks, settings)
     pitchRate = -rateCurve(sticks.ele, settings.rateCenter, settings.rateMax)
     rollRate = rateCurve(sticks.ail, settings.rateCenter, settings.rateMax)
   end
-  self:rotate(pitchRate * RAD * dt, yawRate * RAD * dt, rollRate * RAD * dt)
-
-  local thr = sticks.thr
+  local thr = 0
+  if not self.dead then
+    self:rotate(pitchRate * RAD * dt, yawRate * RAD * dt, rollRate * RAD * dt)
+    thr = sticks.thr
+  end
   self.throttle = thr
-  local acc = thr * TWR * G * (0.8 + 0.2 * self.battery)
+  -- Motor rpm follows voltage, thrust follows rpm squared
+  local vr = self.voltage / CELL_FULL
+  local acc = thr * TWR * G * vr * vr
   local v = self:speed()
   local drag = DRAG * v
   self.vx = self.vx + (self.ux * acc - self.vx * drag) * dt
@@ -119,6 +133,17 @@ function Quad:step(dt, sticks, settings)
   self.battery = self.battery - dt * (0.1 + 0.9 * thr * sqrt(thr)) / BATTERY_LIFE
   if self.battery < 0 then
     self.battery = 0
+  end
+  local k = self.battery * 10
+  local i = k // 1
+  local rest = i >= 10 and CELL_FULL or CELL_CURVE[i] + (CELL_CURVE[i + 1] - CELL_CURVE[i]) * (k - i)
+  -- Current, and so sag, grows with throttle^1.5 like the drain
+  local sag = thr * sqrt(thr) * (SAG_FULL + SAG_EMPTY * (1 - self.battery))
+  local f = SAG_RATE * dt
+  self.sag = self.sag + (sag - self.sag) * (f > 1 and 1 or f)
+  self.voltage = rest - self.sag
+  if self.voltage < CELL_CUTOFF then
+    self.dead = true
   end
 
   if self.py < 0 then

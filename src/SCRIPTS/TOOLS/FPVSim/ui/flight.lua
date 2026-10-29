@@ -61,13 +61,17 @@ function Flight.run(event, dt)
         break
       end
     end
-    if state == "flying" and quad.battery <= 0 then
-      state = "crashed"
-      stateTime = 0
+    if quad.dead then
+      message = "BATTERY EMPTY"
+      -- Motors are off: the run ends where the quad comes down, crash or not
+      if state == "flying" and quad.py <= 0 then
+        state = "crashed"
+        stateTime = 0
+      end
     end
   else
     stateTime = stateTime + dt
-    message = quad.battery <= 0 and "BATTERY EMPTY" or "CRASH"
+    message = quad.dead and "BATTERY EMPTY" or "CRASH"
     if stateTime > CRASH_SHOW then
       respawn()
     end
