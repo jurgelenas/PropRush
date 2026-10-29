@@ -18,6 +18,7 @@ local values = {
   maxAngle = 55,
   -- Diagonal, in degrees
   fov = 95,
+  fps = false,
 }
 
 -- The editable ones, in menu order: a list of choices (with optional display labels) or a min/max/step range
@@ -50,6 +51,7 @@ local items = {
   { key = "quality", label = "QUALITY", choices = { 1, 2, 3 }, labels = { "LOW", "MED", "HIGH" } },
   { key = "angleMode", label = "MODE", choices = { false, true }, labels = { "ACRO", "ANGLE" } },
   { key = "batterySim", label = "BATTERY", choices = { true, false }, labels = ON_OFF },
+  { key = "fps", label = "FPS", choices = { true, false }, labels = ON_OFF },
   { label = "RATES", page = rates },
 }
 

@@ -8,7 +8,10 @@ local Hud = {}
 local LOW_CELL = 33
 
 -- Strings are rebuilt only when the shown number changes
-local batVal, batStr, altVal, altStr, spdVal, spdStr
+local batVal, batStr, altVal, altStr, spdVal, spdStr, fpsVal, fpsStr
+
+-- Frames counted since fpsStart (getTime ticks of 10 ms), shown once a second
+local frames, fpsStart = 0, 0
 
 -- goal: top-right text (e.g. "PTS 1460") or nil; message: centred banner or nil
 function Hud.draw(q, settings, goal, message)
@@ -39,6 +42,23 @@ function Hud.draw(q, settings, goal, message)
     spdVal, spdStr = spd, format("%dkmh", spd)
   end
   gfx.text(W - 1, H - FH, spdStr, "r")
+  if settings.fps then
+    frames = frames + 1
+    local now = getTime()
+    -- After a pause (menu, first frame) the window restarts rather than showing a bogus low reading
+    if now - fpsStart > 200 then
+      frames, fpsStart, fpsVal, fpsStr = 0, now, nil, nil
+    elseif now - fpsStart >= 100 then
+      local fps = floor(frames * 100 / (now - fpsStart) + 0.5)
+      if fps ~= fpsVal then
+        fpsVal, fpsStr = fps, format("%dFPS", fps)
+      end
+      frames, fpsStart = 0, now
+    end
+    if fpsStr then
+      gfx.text(W / 2, H - FH, fpsStr, "c")
+    end
+  end
 
   local cx, cy = floor(W / 2), floor(H / 2)
   gfx.rect(cx - 3, cy, 1, 1, 4)
