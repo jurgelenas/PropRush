@@ -12,17 +12,18 @@ local LAP_SHOW = 2
 local Race = {}
 Race.__index = Race
 
--- map.gates: Course.addGate openings in course order; sound: platform/sound, optional
-function Race.new(map, sound)
-  local r = setmetatable({ gates = map.gates, sound = sound }, Race)
+-- map.gates: Course.addGate openings in course order; sound: platform/sound, optional; save: core/save, id: the
+-- map's key there
+function Race.new(map, sound, save, id)
+  local r = setmetatable({ gates = map.gates, sound = sound, save = save, id = id }, Race)
   r:reset()
   return r
 end
 
 function Race:reset()
   self.next, self.lap, self.time = 1, 0, 0
-  -- Best lap of this run in seconds, and the lap just closed (taken by the caller)
-  self.best, self.finished = nil, nil
+  -- Best lap of this run in seconds, the last lap closed, and whether a lap beat the map's best
+  self.best, self.last, self.newBest = nil, nil, false
   self.show = 0
   -- HUD: goal the next gate and its distance (top right), clock the lap time (top centre), note a closed lap
   self.goal, self.clock, self.note = nil, nil, nil
@@ -42,12 +43,20 @@ function Race:update(dt, q, ox, oy, oz)
     if self.next == 1 then
       if self.lap > 0 then
         local t = self.time
-        self.finished = t
+        self.last = t
         if not self.best or t < self.best then
           self.best = t
         end
         self.lapNote = format("LAP %d %.2fS", self.lap, t)
         self.show = LAP_SHOW
+        -- Lap times are kept in hundredths, lowest best
+        local newBest = self.save.record(self.id, floor(t * 100 + 0.5), true)
+        if newBest then
+          self.newBest = true
+        end
+        if self.sound then
+          self.sound.cue(newBest and "bestLap" or "lap")
+        end
       elseif self.sound then
         self.sound.cue("start")
       end
@@ -86,7 +95,7 @@ end
 -- The next gate's marker, two pixels thick so it reads over the scenery: a chevron over its top, held inside the
 -- HUD bars when it is above or below the view, or an arrow on a white patch at the side it lies to when it is off
 -- to the side or behind
-function Race:drawMarker(R, gfx)
+function Race:draw(R, gfx)
   local g = self.gates[self.next]
   local W, H, FH = gfx.W, gfx.H, gfx.FH
   local cx, cy = W / 2, H / 2
@@ -122,6 +131,15 @@ function Race:drawMarker(R, gfx)
     gfx.line(W - 6, cy - 3, W - 3, cy, 4)
     gfx.line(W - 3, cy, W - 6, cy + 3, 4)
   end
+end
+
+-- Laps are kept as they close
+function Race:keep() end
+
+-- The run ended in a crash: its best lap goes on the note line
+function Race:finish()
+  local best = self.best
+  self.note = best and format(self.newBest and "NEW BEST %.2fS" or "BEST LAP %.2fS", best) or "NO LAP"
 end
 
 return Race

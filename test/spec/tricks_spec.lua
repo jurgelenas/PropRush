@@ -9,6 +9,11 @@ local R = assert(loadfile(CORE .. "render3d.lua"))()
 local Scene = assert(loadfile(CORE .. "scene.lua"))(R)
 local Course = assert(loadfile(CORE .. "course.lua"))(R, Scene)
 local Tricks = assert(loadfile(CORE .. "tricks.lua"))(Course)
+local save = assert(loadfile(CORE .. "save.lua"))({
+  write = function()
+    return true
+  end,
+}, {}, {})
 
 -- A wall across z = 20 with a 4 x 3 m window at x -2..2, y 2..5, and a long wall along x = 30
 local scene = Scene.new()
@@ -58,7 +63,7 @@ local function start(y, v, x, z)
   q = Quad.new()
   q:reset(x or 0, y, z or 0, 0)
   q.vz = v or 0
-  t = Tricks.new(map, sound)
+  t = Tricks.new(map, sound, save, "test")
   notes, cues = {}, {}
 end
 
@@ -285,6 +290,33 @@ describe("tricks", function()
       start(6, 10, 6, 10)
       fly(1.5)
       assert.equal(0, t.score, state())
+    end)
+  end)
+
+  describe("the map's best", function()
+    it("a crash keeps the run's score", function()
+      start(30)
+      fly(0.55, 0, 1)
+      fly(0.3)
+      t:finish()
+      assert.equal("NEW BEST 10", t.note, state())
+      assert.equal(10, save.bests.test, state())
+      assert.is_true(cued("cue best"), state())
+    end)
+    it("passing it is cued", function()
+      start(30)
+      fly(1.1, 1, 0)
+      fly(0.3)
+      assert.is_true(cued("cue record"), state())
+    end)
+    it("a lower score is not kept", function()
+      start(30)
+      fly(0.55, 0, 1)
+      fly(0.3)
+      t:finish()
+      assert.equal("PTS 10", t.note, state())
+      assert.equal(10, save.bests.test, state())
+      assert.is_false(cued("cue record"), state())
     end)
   end)
 
