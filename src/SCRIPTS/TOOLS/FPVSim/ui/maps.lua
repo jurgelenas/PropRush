@@ -38,7 +38,7 @@ function Maps.run(event)
   gfx.clear()
   List.title(title)
   for i = first, math.min(#entries, first + rows - 1) do
-    List.row(List.TOP + 1 + (i - first) * ROW_H, ROW_H - 1, split - 2, entries[i].name, i == selected)
+    List.row(List.TOP + 1 + (i - first) * ROW_H, ROW_H, split - 2, entries[i].name, i == selected)
   end
   gfx.line(split, List.TOP + 1, split, H - 1, 4)
   local entry = entries[selected]
