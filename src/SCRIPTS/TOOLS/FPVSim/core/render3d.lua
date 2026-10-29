@@ -10,6 +10,8 @@ local NEAR = 0.2
 local MAX_VERTS = 12
 -- Boxes shorter than this on screen get their silhouette outline only: fill rows and inner edges are invisible there
 local DETAIL_PX = 6
+-- Below this height the edges between faces are too short to read, so only the outline is drawn
+local EDGES_PX = 16
 
 local R = {}
 
@@ -63,6 +65,20 @@ function R.sphereVisible(x, y, z, radius)
   return cxs <= czs * tanX + radius * (1 + tanX) and cys <= czs * tanY + radius * (1 + tanY)
 end
 
+function R.focal()
+  return focal
+end
+
+-- Camera forward direction in world space
+function R.forward()
+  return fx, fy, fz
+end
+
+-- World direction (no translation) to camera space
+function R.camVector(x, y, z)
+  return x * rx + y * ry + z * rz, x * ux + y * uy + z * uz, x * fx + y * fy + z * fz
+end
+
 function R.cameraPos()
   return ox, oy, oz
 end
@@ -74,11 +90,6 @@ function R.toCamera(x, y, z)
 end
 
 local toCamera = R.toCamera
-
--- Camera-space images of the world X and Z unit vectors, for stepping along the ground
-function R.groundAxes()
-  return rx, ux, fx, rz, uz, fz
-end
 
 -- Line given in camera space
 function R.camLine(ax, ay, az, bx, by, bz, shade)
@@ -286,9 +297,11 @@ function R.box(x0, y0, z0, x1, y1, z1, shade, edgeShade)
         px, py = SX[i], SY[i]
       end
     end
-    for i = 1, #inner, 2 do
-      local a, b = inner[i], inner[i + 1]
-      sink.line(BSX[a], BSY[a], BSX[b], BSY[b], edgeShade)
+    if ymax - ymin >= EDGES_PX then
+      for i = 1, #inner, 2 do
+        local a, b = inner[i], inner[i + 1]
+        sink.line(BSX[a], BSY[a], BSX[b], BSY[b], edgeShade)
+      end
     end
   else
     for i = 1, n do

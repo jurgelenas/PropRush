@@ -9,6 +9,7 @@ H.stats = { lines = 0, linePixels = 0, texts = 0, rects = 0 }
 H.sticks = { ail = 0, ele = 0, thr = -1024, rud = 0 }
 H.time = 0
 H.text = {}
+H.fb = {}
 
 local function checkCoord(v, max, what)
   -- luaL_checkunsigned accepts floats with an exact integer value
@@ -17,6 +18,17 @@ local function checkCoord(v, max, what)
   end
   if v < 0 or v > max then
     error(string.format("%s out of range: %d", what, v), 3)
+  end
+end
+
+local function plot(x, y, flags)
+  local i = math.floor(y * LCD_W + x)
+  if flags & ERASE ~= 0 then
+    H.fb[i] = 0
+  elseif flags & FORCE ~= 0 then
+    H.fb[i] = 1
+  else
+    H.fb[i] = 1 - (H.fb[i] or 0)
   end
 end
 
@@ -45,8 +57,15 @@ function H.install(w, h)
       s.lines = s.lines + 1
       s.linePixels = s.linePixels + math.max(math.abs(x2 - x1), math.abs(y2 - y1)) + 1
     end,
-    drawFilledRectangle = function()
+    drawFilledRectangle = FAST_MOCK and function() end or function(x, y, rw, rh, flags)
       s.rects = s.rects + 1
+      for yy = y, y + rh - 1 do
+        for xx = x, x + rw - 1 do
+          if xx >= 0 and xx < w and yy >= 0 and yy < h then
+            plot(xx, yy, flags or 0)
+          end
+        end
+      end
     end,
     drawText = function(_, _, text)
       s.texts = s.texts + 1
@@ -64,18 +83,6 @@ function H.install(w, h)
   end
 end
 
-H.fb = {}
-
-local function plot(x, y, flags)
-  local i = math.floor(y * LCD_W + x)
-  if flags & ERASE ~= 0 then
-    H.fb[i] = 0
-  elseif flags & FORCE ~= 0 then
-    H.fb[i] = 1
-  else
-    H.fb[i] = 1 - (H.fb[i] or 0)
-  end
-end
 
 -- Mirrors lcdDrawLine: Bresenham, pattern bit chosen by the major axis coordinate % 8
 function H.plotLine(x1, y1, x2, y2, pat, flags)

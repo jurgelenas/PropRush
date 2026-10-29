@@ -35,6 +35,68 @@ local function span(xl, xr, y, shade)
   end
 end
 
+-- White fills are always outlined afterwards, so they are erased in blocks of rows: one rectangle per block,
+-- inset to the narrowest row so nothing outside the polygon is touched. Equal consecutive blocks are merged.
+local ERASE_BLOCK = 4
+
+local function eraseFill(xs, ys, n, top, bot, r0, r1)
+  local ia, ja = top, top % n + 1
+  local ib, jb = top, (top - 2) % n + 1
+  local runL, runR, runY, runH = 0, -1, 0, 0
+  local y = r0
+  while y <= r1 do
+    local h = r1 - y + 1
+    if h > ERASE_BLOCK then
+      h = ERASE_BLOCK
+    end
+    local yc = y + h / 2
+    while ys[ja] < yc and ja ~= bot do
+      ia, ja = ja, ja % n + 1
+    end
+    while ys[jb] < yc and jb ~= bot do
+      ib, jb = jb, (jb - 2) % n + 1
+    end
+    local ya, yb = ys[ia], ys[ja]
+    local xa, da = xs[ia], 0
+    if yb > ya then
+      da = (xs[ja] - xa) / (yb - ya)
+      xa = xa + (yc - ya) * da
+    end
+    ya, yb = ys[ib], ys[jb]
+    local xb, db = xs[ib], 0
+    if yb > ya then
+      db = (xs[jb] - xb) / (yb - ya)
+      xb = xb + (yc - ya) * db
+    end
+    if xa > xb then
+      xa, xb, da, db = xb, xa, db, da
+    end
+    -- Inset by how far each edge moves between the block centre and its outermost row
+    local half = (h - 1) / 2
+    xa = xa + (da < 0 and -da or da) * half
+    xb = xb - (db < 0 and -db or db) * half
+    local xl, xr = (xa + 0.5) // 1, (xb - 0.5) // 1
+    if xl < 0 then
+      xl = 0
+    end
+    if xr > XMAX then
+      xr = XMAX
+    end
+    if xl == runL and xr == runR and y == runY + runH then
+      runH = runH + h
+    else
+      if runR >= runL and runH > 0 then
+        drawFilledRectangle(runL, runY, runR - runL + 1, runH, ERASE)
+      end
+      runL, runR, runY, runH = xl, xr, y, h
+    end
+    y = y + h
+  end
+  if runR >= runL and runH > 0 then
+    drawFilledRectangle(runL, runY, runR - runL + 1, runH, ERASE)
+  end
+end
+
 -- Convex polygon: walk both vertex chains down from the top vertex, one span per row.
 -- Rows are sampled at their centres; x is stepped incrementally along the current edge of each chain.
 function Gfx.fill(xs, ys, n, shade, opaque)
@@ -58,6 +120,10 @@ function Gfx.fill(xs, ys, n, shade, opaque)
     r1 = YMAX
   end
   if r0 > r1 then
+    return
+  end
+  if shade == 0 and opaque == true then
+    eraseFill(xs, ys, n, top, bot, r0, r1)
     return
   end
 

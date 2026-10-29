@@ -2,13 +2,19 @@ local R = ...
 
 local floor = math.floor
 
--- Far enough that the line projects onto the true horizon
-local HORIZON_DIST = 2000
--- One grid spacing; solid near the camera, dotted further out so distant lines stay light.
+-- Ground grid: one spacing everywhere; solid near the camera, dotted further out
 local GRID_STEP, NEAR_EXTENT = 30, 60
+local FAR_EXTENT = { 270, 360, 450 }
 
--- Indexed by quality: 1 LOW, 2 MED, 3 HIGH
-local FAR_EXTENT = { 120, 150, 180 }
+-- Hills ringing the ground at the far grid extent, so the grid runs right up to the visible horizon.
+-- Elevation of the ridge in degrees per azimuth step; the ring follows the camera, so it is never reached.
+local HILLS = { 1.5, 3, 2, 4.5, 3.5, 1, 2.5, 5, 3, 2, 1, 3.5, 6, 4, 2, 1.5, 3, 2, 4, 2.5, 1, 3, 4.5, 2 }
+local HILL_SIN, HILL_COS, HILL_TAN = {}, {}, {}
+local HILL_CULL = -0.2
+for i = 1, #HILLS do
+  local a = (i - 1) * 2 * math.pi / #HILLS
+  HILL_SIN[i], HILL_COS[i], HILL_TAN[i] = math.sin(a), math.cos(a), math.tan(HILLS[i] * math.pi / 180)
+end
 -- Full detail within DRAW_DIST, fogged out to OUTLINE_FACTOR times that: no pop-in
 local DRAW_DIST = { 100, 150, 200 }
 local OUTLINE_FACTOR = 3
@@ -48,45 +54,92 @@ addBox(30, 120, 10, 18, 22)
 -- second call per row is cheap.
 local BOX_SHADE, BOX_EDGE, FAR_SHADE, FAR_EDGE = 0, 4, 1, 2
 
--- Lines every step metres within extent of the camera, stepped in camera space.
--- xx..zz: camera-space images of the world X and Z unit vectors.
-local function drawGrid(ox, oz, step, extent, shade, xx, xy, xz, zx, zy, zz)
-  local x0 = floor((ox - extent) / step) * step
-  local z0 = floor((oz - extent) / step) * step
-  local span = 2 * extent
-  local count = floor(span / step)
-  local sx, sy, sz = xx * step, xy * step, xz * step
-  local tx, ty, tz = zx * step, zy * step, zz * step
-  local ax, ay, az = R.toCamera(x0, 0, z0)
-  local lx, ly, lz = zx * span, zy * span, zz * span
-  local px, py, pz = ax, ay, az
-  for _ = 0, count do
-    R.camLine(px, py, pz, px + lx, py + ly, pz + lz, shade)
-    px, py, pz = px + sx, py + sy, pz + sz
+-- Ground at distance d from height h sits focal * h / d below the horizon, so lines crossing the view there
+-- are ~focal * h * step / d^2 apart. Beyond the distance where that drops under MIN_GAP_PX they only smudge.
+local MIN_GAP_PX = 3
+
+-- One family of parallel grid lines. alongZ: lines of constant x running along z.
+-- reach: how far from the camera lines are placed; length: radius of the circle they are trimmed to.
+-- Line centres and directions are stepped in camera space instead of transforming every endpoint.
+local function drawFamily(alongZ, ox, oz, reach, length)
+  local o = alongZ and ox or oz
+  local p = floor((o - reach) / GRID_STEP) * GRID_STEP
+  -- Camera-space images of the step between lines and of the line direction (unit vectors)
+  local sx, sy, sz, dx, dy, dz
+  local cx, cy, cz
+  if alongZ then
+    sx, sy, sz = R.camVector(GRID_STEP, 0, 0)
+    dx, dy, dz = R.camVector(0, 0, 1)
+    cx, cy, cz = R.toCamera(p, 0, oz)
+  else
+    sx, sy, sz = R.camVector(0, 0, GRID_STEP)
+    dx, dy, dz = R.camVector(1, 0, 0)
+    cx, cy, cz = R.toCamera(ox, 0, p)
   end
-  lx, ly, lz = xx * span, xy * span, xz * span
-  px, py, pz = ax, ay, az
-  for _ = 0, count do
-    R.camLine(px, py, pz, px + lx, py + ly, pz + lz, shade)
-    px, py, pz = px + tx, py + ty, pz + tz
+  local last = o + reach
+  local l2 = length * length
+  while p <= last do
+    local d = p - o
+    local ad = d < 0 and -d or d
+    -- Solid near the camera; dotted further out and on the outermost row, so lines entering at the edge fade in
+    local shade = (ad <= NEAR_EXTENT and ad <= reach - GRID_STEP) and 4 or 2
+    -- Trimmed to the circle of radius length, where the hills stand
+    local half = l2 - d * d
+    if half > 0 then
+      half = math.sqrt(half)
+      local hx, hy, hz = dx * half, dy * half, dz * half
+      R.camLine(cx - hx, cy - hy, cz - hz, cx + hx, cy + hy, cz + hz, shade)
+    end
+    cx, cy, cz = cx + sx, cy + sy, cz + sz
+    p = p + GRID_STEP
+  end
+end
+
+local function drawHills(ox, oz, dist)
+  local n = #HILLS
+  -- Ring points more than ~100 degrees from the view direction can never be on screen
+  local fx, _, fz = R.forward()
+  local len = math.sqrt(fx * fx + fz * fz)
+  if len < 0.01 then
+    fx, fz, len = 0, 1, 1
+  end
+  fx, fz = fx / len, fz / len
+  local prev
+  local bx, by, bz, tx, ty, tz
+  for i = 0, n do
+    local k = i == 0 and n or i
+    local s, c = HILL_SIN[k], HILL_COS[k]
+    if s * fx + c * fz > HILL_CULL then
+      local x, z = ox + dist * s, oz + dist * c
+      local cx, cy, cz = R.toCamera(x, 0, z)
+      local ux, uy, uz = R.toCamera(x, dist * HILL_TAN[k], z)
+      if prev then
+        R.camLine(bx, by, bz, cx, cy, cz, 4)
+        R.camLine(tx, ty, tz, ux, uy, uz, 4)
+      end
+      bx, by, bz, tx, ty, tz = cx, cy, cz, ux, uy, uz
+      prev = true
+    else
+      prev = nil
+    end
   end
 end
 
 local function drawGround(ox, oz, quality)
-  -- Third and sixth values are the camera forward's world x and z
-  local xx, xy, xz, zx, zy, zz = R.groundAxes()
-
-  -- Horizon: a line through two far ground points either side of the view direction
-  local len = math.sqrt(xz * xz + zz * zz)
-  if len > 0.01 then
-    local hx, hz = xz / len * HORIZON_DIST, zz / len * HORIZON_DIST
-    local ax, ay, az = R.toCamera(ox + hx - hz, 0, oz + hz + hx)
-    local bx, by, bz = R.toCamera(ox + hx + hz, 0, oz + hz - hx)
-    R.camLine(ax, ay, az, bx, by, bz, 4)
+  local _, oy = R.cameraPos()
+  local far = FAR_EXTENT[quality]
+  local useful = math.sqrt(R.focal() * oy * GRID_STEP / MIN_GAP_PX)
+  -- At least the near extent, so the edge where lines enter stays well ahead even when skimming the ground
+  if useful < NEAR_EXTENT then
+    useful = NEAR_EXTENT
+  elseif useful > far then
+    useful = far
   end
-
-  drawGrid(ox, oz, GRID_STEP, NEAR_EXTENT, 4, xx, xy, xz, zx, zy, zz)
-  drawGrid(ox, oz, GRID_STEP, FAR_EXTENT[quality], 2, xx, xy, xz, zx, zy, zz)
+  -- Only lines within the uncrowded range are placed, but each runs on to the hills: the ones heading
+  -- away from the view become a few rays converging on the horizon instead of a dense fan
+  drawFamily(true, ox, oz, useful, far)
+  drawFamily(false, ox, oz, useful, far)
+  drawHills(ox, oz, far)
 end
 
 -- Insertion sort, farthest first: the order barely changes between frames, and B&W radios have no table lib.

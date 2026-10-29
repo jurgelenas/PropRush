@@ -20,6 +20,7 @@ local POSES = {
   { "lowfwd", 0, 3, 10, 0, -0.7, 0 },
   { "high", 0, 20, 0, 0, -0.9, 0 },
   { "bank", 0, 6, 20, 20, -0.6, 0.6 },
+  { "steep", 0, 60, 0, 0, -1.0, 0.7 },
 }
 local q = Quad.new()
 for _, p in ipairs(POSES) do

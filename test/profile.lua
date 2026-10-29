@@ -13,13 +13,19 @@ local Quad = load("core/quad")
 local World = load("core/world", R)
 R.setSink(gfx)
 
-local REPS = 300
+local REPS = 200
+local TRIALS = 5
+-- Best of several trials: the minimum is the least disturbed by other host load
 local function time(fn)
-  local t0 = os.clock()
-  for _ = 1, REPS do
-    fn()
+  local best = math.huge
+  for _ = 1, TRIALS do
+    local t0 = os.clock()
+    for _ = 1, REPS do
+      fn()
+    end
+    best = math.min(best, (os.clock() - t0) * 1e6 / REPS)
   end
-  return (os.clock() - t0) * 1e6 / REPS
+  return best
 end
 
 local function loop6000()
