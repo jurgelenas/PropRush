@@ -7,20 +7,6 @@ local Hud = {}
 -- Strings are rebuilt only when the shown number changes
 local batVal, batStr, altVal, altStr, spdVal, spdStr
 
-local function throttleBar(thr)
-  local x, y0, y1 = 0, gfx.FH + 2, gfx.H - gfx.FH - 3
-  local h = y1 - y0
-  gfx.rect(x, y0, 4, h + 1, 0)
-  gfx.rect(x + 1, y0, 1, h + 1, 4)
-  local fill = floor(h * thr + 0.5)
-  if fill > 0 then
-    gfx.rect(x + 1, y1 - fill + 1, 2, fill, 4)
-  end
-  -- Hover point: thrust-to-weight 4.5 hovers at ~22 %
-  local hy = y1 - floor(h * 0.22 + 0.5)
-  gfx.rect(x, hy, 4, 1, 4)
-end
-
 -- goal: top-right text (e.g. "PTS 1460") or nil; message: centred banner or nil
 function Hud.draw(q, settings, goal, message)
   local W, H, FH = gfx.W, gfx.H, gfx.FH
@@ -47,8 +33,6 @@ function Hud.draw(q, settings, goal, message)
     spdVal, spdStr = spd, format("%dkmh", spd)
   end
   gfx.text(W - 1, H - FH, spdStr, "r")
-
-  throttleBar(q.throttle)
 
   local cx, cy = floor(W / 2), floor(H / 2)
   gfx.rect(cx - 3, cy, 1, 1, 4)
