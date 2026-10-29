@@ -1,6 +1,8 @@
 -- Freestyle scoring: tricks read from the quad's flight, chained into combos. Each trick scores at once, times the
 -- combo multiplier, which grows with every trick within COMBO_TIME of the last; a prop strike or a crash resets it.
 
+local Kit = ...
+
 local format, floor, abs = string.format, math.floor, math.abs
 
 local RAD = math.pi / 180
@@ -43,6 +45,8 @@ local COS2_30, COS2_135 = 0.75, 0.5
 local COMBO_TIME = 3
 local MULT_MAX = 5
 local NOTE_TIME = 1.5
+
+local through = Kit.through
 
 local TIMES = { "", "DOUBLE ", "TRIPLE " }
 
@@ -139,26 +143,6 @@ function Tricks:endTurn(q)
   then
     self:award("SPLIT-S", SPLIT_POINTS)
   end
-end
-
--- Whether the path from o to p crosses gap g's rectangle
-local function through(g, ox, oy, oz, px, py, pz)
-  local a, b, u, u1, v, v1
-  local axis = g.axis
-  if axis == 1 then
-    a, b, u, u1, v, v1 = ox, px, oy, py, oz, pz
-  elseif axis == 2 then
-    a, b, u, u1, v, v1 = oy, py, ox, px, oz, pz
-  else
-    a, b, u, u1, v, v1 = oz, pz, ox, px, oy, py
-  end
-  local at = g.at
-  if (a < at) == (b < at) then
-    return false
-  end
-  local t = (at - a) / (b - a)
-  u, v = u + (u1 - u) * t, v + (v1 - v) * t
-  return u > g.u0 and u < g.u1 and v > g.v0 and v < g.v1
 end
 
 -- Gaps flown through since the last frame; upside down they score double

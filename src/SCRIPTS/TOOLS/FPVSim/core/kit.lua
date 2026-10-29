@@ -296,6 +296,50 @@ local function structureNear(st, x, y, z, d2)
   return false
 end
 
+-- Structure: one building made of boxes, such as floors on columns or a wall with openings, sorted as a
+-- whole against the rest of the scene. Its parts are grouped into levels by base height and drawn level
+-- by level, so floors and the columns between them overlap correctly from inside and out. A part must
+-- stay below the next level's base: columns are split at every floor.
+-- add(x, z, w, d, h, y0) takes a part as addBox does, standing at height y0.
+local function newStructure()
+  local bounds = newBox(0, 0, 0, 0, 0, 0)
+  local st =
+    { levels = {}, bases = {}, parts = {}, bounds = bounds, draw = drawStructure, collides = structureCollides }
+  st.near = structureNear
+  local first = true
+
+  function st.add(x, z, w, d, h, y0)
+    local b = newBox(x, z, w, d, h, y0)
+    st.parts[#st.parts + 1] = b
+    local levels, bases = st.levels, st.bases
+    local i = 1
+    while bases[i] and bases[i] < y0 do
+      i = i + 1
+    end
+    if bases[i] ~= y0 then
+      for j = #bases, i, -1 do
+        bases[j + 1], levels[j + 1] = bases[j], levels[j]
+      end
+      bases[i], levels[i] = y0, {}
+    end
+    local level = levels[i]
+    level[#level + 1] = b
+
+    if first then
+      bounds.x0, bounds.y0, bounds.z0, bounds.x1, bounds.y1, bounds.z1 = b.x0, b.y0, b.z0, b.x1, b.y1, b.z1
+      first = false
+    else
+      bounds.x0, bounds.y0, bounds.z0 = math.min(bounds.x0, b.x0), math.min(bounds.y0, b.y0), math.min(bounds.z0, b.z0)
+      bounds.x1, bounds.y1, bounds.z1 = math.max(bounds.x1, b.x1), math.max(bounds.y1, b.y1), math.max(bounds.z1, b.z1)
+    end
+    local bw, bh, bd = bounds.x1 - bounds.x0, bounds.y1 - bounds.y0, bounds.z1 - bounds.z0
+    st.cx, st.cy, st.cz = bounds.x0 + bw / 2, bounds.y0 + bh / 2, bounds.z0 + bd / 2
+    st.rad = math.sqrt(bw * bw + bh * bh + bd * bd) / 2
+    return b
+  end
+  return st
+end
+
 -- Scene: objects drawn back to front, culled to the view, with collision.
 -- Each object has a bounding sphere cx, cy, cz, rad and dist, its squared ground distance from the camera.
 -- Buildings are axis-aligned boxes x0, y0, z0, x1, y1, z1; custom objects carry draw(obj, fogged) and
@@ -320,51 +364,9 @@ function Kit.newScene()
     return obj
   end
 
-  -- Structure: one building made of boxes, such as floors on columns or a wall with openings, sorted as a
-  -- whole against the rest of the scene. Its parts are grouped into levels by base height and drawn level
-  -- by level, so floors and the columns between them overlap correctly from inside and out. A part must
-  -- stay below the next level's base: columns are split at every floor.
-  -- add(x, z, w, d, h, y0) takes a part as addBox does, standing at height y0.
+  -- Structure (see newStructure)
   function scene.addStructure()
-    local bounds = newBox(0, 0, 0, 0, 0, 0)
-    local st =
-      { levels = {}, bases = {}, parts = {}, bounds = bounds, draw = drawStructure, collides = structureCollides }
-    st.near = structureNear
-    local first = true
-
-    function st.add(x, z, w, d, h, y0)
-      local b = newBox(x, z, w, d, h, y0)
-      st.parts[#st.parts + 1] = b
-      local levels, bases = st.levels, st.bases
-      local i = 1
-      while bases[i] and bases[i] < y0 do
-        i = i + 1
-      end
-      if bases[i] ~= y0 then
-        for j = #bases, i, -1 do
-          bases[j + 1], levels[j + 1] = bases[j], levels[j]
-        end
-        bases[i], levels[i] = y0, {}
-      end
-      local level = levels[i]
-      level[#level + 1] = b
-
-      if first then
-        bounds.x0, bounds.y0, bounds.z0, bounds.x1, bounds.y1, bounds.z1 = b.x0, b.y0, b.z0, b.x1, b.y1, b.z1
-        first = false
-      else
-        bounds.x0, bounds.y0, bounds.z0 =
-          math.min(bounds.x0, b.x0), math.min(bounds.y0, b.y0), math.min(bounds.z0, b.z0)
-        bounds.x1, bounds.y1, bounds.z1 =
-          math.max(bounds.x1, b.x1), math.max(bounds.y1, b.y1), math.max(bounds.z1, b.z1)
-      end
-      local bw, bh, bd = bounds.x1 - bounds.x0, bounds.y1 - bounds.y0, bounds.z1 - bounds.z0
-      st.cx, st.cy, st.cz = bounds.x0 + bw / 2, bounds.y0 + bh / 2, bounds.z0 + bd / 2
-      st.rad = math.sqrt(bw * bw + bh * bh + bd * bd) / 2
-      return b
-    end
-
-    return scene.addObject(st)
+    return scene.addObject(newStructure())
   end
 
   function scene.draw(quality)
@@ -443,6 +445,101 @@ function Kit.gap(name, points, x0, y0, z0, x1, y1, z1)
     assert(z0 == z1, "gap is not flat")
     g.axis, g.at, g.u0, g.u1, g.v0, g.v1 = 3, z0, x0, x1, y0, y1
   end
+  return g
+end
+
+-- True when the path from ox, oy, oz to px, py, pz crosses gap g, either way
+function Kit.through(g, ox, oy, oz, px, py, pz)
+  local a, b, u, u1, v, v1
+  local axis = g.axis
+  if axis == 1 then
+    a, b, u, u1, v, v1 = ox, px, oy, py, oz, pz
+  elseif axis == 2 then
+    a, b, u, u1, v, v1 = oy, py, ox, px, oz, pz
+  else
+    a, b, u, u1, v, v1 = oz, pz, ox, px, oy, py
+  end
+  local at = g.at
+  if (a < at) == (b < at) then
+    return false
+  end
+  local t = (at - a) / (b - a)
+  u, v = u + (u1 - u) * t, v + (v1 - v) * t
+  return u > g.u0 and u < g.u1 and v > g.v0 and v < g.v1
+end
+
+-- Race gate frame: posts and bars GATE_BAR thick round an opening w wide and h tall, its bottom y0 up, centred on
+-- x, z. alongX: the frame stands along x (flown through northwards or back); else along z. Returns the opening as
+-- a gap carrying its centre cx, cy, cz and top.
+-- The frame collides as boxes but draws as boxes only near the camera: further out the bars are a pixel or two wide,
+-- so the frame's outer and inner edges as lines are the same picture at a fraction of the cost. GATE_PX: bar width
+-- on screen below which the lines take over.
+local GATE_BAR, GATE_PX = 0.3, 2.5
+
+-- Edges in the gate's plane: horizontal offset from the centre, height
+local function gateLine(g, a, ay, b, by, shade)
+  local x, z, ux, uz = g.cx, g.cz, g.ux, g.uz
+  R.line(x + ux * a, ay, z + uz * a, x + ux * b, by, z + uz * b, shade)
+end
+
+local function drawGate(g, fogged)
+  -- Ground distance within which the bars are GATE_PX or wider; dist is to the centre, so plus the half width
+  local near = GATE_BAR * R.focal() / GATE_PX + g.half + GATE_BAR
+  if g.dist < near * near then
+    drawStructure(g, fogged)
+    return
+  end
+  local shade = fogged and FAR_EDGE or BOX_EDGE
+  -- Outer and inner half widths and edges, the outer bottom on the ground when it has no bottom bar
+  local o, i = g.half + GATE_BAR, g.half
+  local ob, ib, it, ot = g.base, g.y0, g.y1, g.y1 + GATE_BAR
+  gateLine(g, -o, ob, -o, ot, shade)
+  gateLine(g, -o, ot, o, ot, shade)
+  gateLine(g, o, ot, o, ob, shade)
+  gateLine(g, -i, ib, -i, it, shade)
+  gateLine(g, -i, it, i, it, shade)
+  gateLine(g, i, it, i, ib, shade)
+  if ob > 0 then
+    gateLine(g, -o, ob, o, ob, shade)
+    gateLine(g, -i, ib, i, ib, shade)
+    -- Legs down the posts' middles
+    local m = g.half + GATE_BAR / 2
+    gateLine(g, -m, 0, -m, ob, shade)
+    gateLine(g, m, 0, m, ob, shade)
+  end
+end
+
+function Kit.addGate(scene, x, z, w, h, y0, alongX)
+  local st = newStructure()
+  local T = GATE_BAR
+  local px, pz, pw, pd, bw, bd
+  if alongX then
+    px, pz, pw, pd, bw, bd = (w + T) / 2, 0, T, T, w + 2 * T, T
+  else
+    px, pz, pw, pd, bw, bd = 0, (w + T) / 2, T, T, T, w + 2 * T
+  end
+  -- Posts are split at the bottom bar, which starts a level
+  local base = 0
+  if y0 > T then
+    base = y0 - T
+    st.add(x - px, z - pz, pw, pd, base, 0)
+    st.add(x + px, z + pz, pw, pd, base, 0)
+    st.add(x, z, bw, bd, T, base)
+  end
+  st.add(x - px, z - pz, pw, pd, y0 + h - base, base)
+  st.add(x + px, z + pz, pw, pd, y0 + h - base, base)
+  st.add(x, z, bw, bd, T, y0 + h)
+  st.draw = drawGate
+  st.half, st.base, st.y0, st.y1 = w / 2, base, y0, y0 + h
+  st.ux, st.uz = alongX and 1 or 0, alongX and 0 or 1
+  scene.addObject(st)
+  local g
+  if alongX then
+    g = Kit.gap("GATE", 0, x - w / 2, y0, z, x + w / 2, y0 + h, z)
+  else
+    g = Kit.gap("GATE", 0, x, y0, z - w / 2, x, y0 + h, z + w / 2)
+  end
+  g.cx, g.cy, g.cz, g.top = x, y0 + h / 2, z, y0 + h
   return g
 end
 

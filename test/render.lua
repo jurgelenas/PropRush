@@ -44,26 +44,42 @@ local MAPS = {
     { "chimney", 26, 40, 78, 30, -1.9, 0 },
     { "west", -60, 6, 50, 90, -0.7, 0 },
   },
+  gates = {
+    { "ground", 0, 0.1, 0, 0, 0, 0 },
+    { "start", 0, 1.7, 2, 0, -0.5, 0 },
+    -- Past the start: gate 2 ahead, then turned away from it (the marker's side arrow)
+    { "gate2", 2, 3, 25, 10, -0.6, 0 },
+    { "away", 2, 3, 25, 100, -0.6, 0 },
+    { "high", -10, 25, -10, 40, -0.9, 0 },
+    { "gate4", 50, 7, 75, 160, -0.6, 0.4 },
+  },
 }
 
 local q = Quad.new()
-for _, id in ipairs({ "pillars", "bando" }) do
+local Race = load("core/race", Kit)
+for _, id in ipairs({ "pillars", "bando", "gates" }) do
   local Map = load("maps/" .. id, Kit, R)
+  local race = Map.gates and Race.new(Map)
   for _, p in ipairs(MAPS[id]) do
     q:reset(p[2], p[3], p[4], p[5])
     q:rotate(p[6], 0, p[7])
     lcd.clear()
     R.setCamera(q)
     Map.draw(settings.quality)
+    if race then
+      -- Through the start gate, so the marker is on gate 2
+      race.next = 2
+      race:drawMarker(R, gfx)
+    end
     local loss = Map.signalLoss(q.px, q.py, q.pz) ^ 2
     if loss > 0 then
       if loss >= 1 then
         lcd.clear()
       end
       gfx.static(loss)
-  end
-  Hud.draw(q, settings, nil, nil)
-  H.savePbm(string.format("/tmp/fpv-render/%s_%s_%dx%d.pbm", id, p[1], LCD_W, LCD_H))
+    end
+    Hud.draw(q, settings, nil, nil)
+    H.savePbm(string.format("/tmp/fpv-render/%s_%s_%dx%d.pbm", id, p[1], LCD_W, LCD_H))
   end
 end
 exit(0)

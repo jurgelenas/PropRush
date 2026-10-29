@@ -5,8 +5,8 @@ H.install(128, 64)
 
 local CORE = "src/SCRIPTS/TOOLS/FPVSim/core/"
 local Quad = assert(loadfile(CORE .. "quad.lua"))(assert(loadfile(CORE .. "rates.lua"))())
-local Tricks = assert(loadfile(CORE .. "tricks.lua"))()
 local Kit = assert(loadfile(CORE .. "kit.lua"))(assert(loadfile(CORE .. "render3d.lua"))())
+local Tricks = assert(loadfile(CORE .. "tricks.lua"))(Kit)
 
 -- A wall across z = 20 with a 4 x 3 m window at x -2..2, y 2..5, and a long wall along x = 30
 local scene = Kit.newScene()
