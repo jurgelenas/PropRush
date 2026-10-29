@@ -27,6 +27,8 @@ function Map.collides(x, y, z)
   return scene.collides(x, y, z)
 end
 
+Map.near = scene.near
+
 -- Video link: clean within 150 m of the pillar ring, lost at 400 m
 function Map.signalLoss(x, y, z)
   return Kit.rangeLoss(x, y, z, 0, 60, 150, 400)

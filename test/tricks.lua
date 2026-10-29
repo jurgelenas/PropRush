@@ -1,8 +1,22 @@
--- Freestyle scoring: flips, rolls and dives flown through the real quad, chained into combos.
+-- Freestyle scoring: flips, rolls, dives, gaps and proximity flown through the real quad, chained into combos.
+
+local H = dofile("test/harness.lua")
+H.install(128, 64)
 
 local CORE = "src/SCRIPTS/TOOLS/FPVSim/core/"
 local Quad = assert(loadfile(CORE .. "quad.lua"))(assert(loadfile(CORE .. "rates.lua"))())
 local Tricks = assert(loadfile(CORE .. "tricks.lua"))()
+local Kit = assert(loadfile(CORE .. "kit.lua"))(assert(loadfile(CORE .. "render3d.lua"))())
+
+-- A wall across z = 20 with a 4 x 3 m window at x -2..2, y 2..5, and a long wall along x = 30
+local scene = Kit.newScene()
+local wall = scene.addStructure()
+wall.add(-6, 20, 8, 0.6, 8, 0)
+wall.add(6, 20, 8, 0.6, 8, 0)
+wall.add(0, 20, 4, 0.6, 2, 0)
+wall.add(0, 20, 4, 0.6, 3, 5)
+scene.addBox(30.5, 50, 1, 100, 10)
+local map = { gaps = { Kit.gap("WINDOW", 10, -2, 2, 20, 2, 5, 20) }, near = scene.near }
 
 local settings = {
   angleMode = false,
@@ -24,12 +38,12 @@ local sticks = { ail = 0, ele = 0, rud = 0, thr = HOVER }
 local q, t
 local notes
 
--- At height y, flying north at v m/s
-local function start(y, v)
+-- At x, y, z (x and z default 0), flying north at v m/s
+local function start(y, v, x, z)
   q = Quad.new()
-  q:reset(0, y, 0, 0)
+  q:reset(x or 0, y, z or 0, 0)
   q.vz = v or 0
-  t = Tricks.new()
+  t = Tricks.new(map)
   notes = {}
 end
 
@@ -171,6 +185,42 @@ fly(1.5, 0, -0.6, 0.6)
 fly(0.135, -1, 0)
 fly(0.3)
 check("hard banked turn is no knife edge", not noted("KNIFE"))
+
+start(3.5, 10, 0, 10)
+fly(1.5)
+check("through the window", t.score == 10 and noted("WINDOW +10"))
+q.pz, q.vz, t.ox = 10, 10, nil
+fly(1.5)
+check("  again straight after scores nothing", t.score == 10)
+fly(2)
+q.pz, q.vz, t.ox = 10, 10, nil
+fly(1.5)
+check("  but does once the combo is over", t.score == 20)
+
+start(3.6, 10, 0, 17)
+q:rotate(0, 0, math.pi)
+fly(0.5, 0, 0, 0)
+check("inverted through the window", noted("INVERTED WINDOW +20"))
+
+start(6, 10, 6, 10)
+fly(1.5)
+check("into the wall beside the window is no gap", t.score == 0)
+
+start(3, 16, 29, 5)
+fly(0.8)
+q.px = 20
+fly(0.3)
+check("proximity along a wall", noted("PROXIMITY 0."))
+
+start(3, 6, 29, 5)
+fly(1)
+q.px = 20
+fly(0.3)
+check("slow along a wall is no proximity", #notes == 0)
+
+start(0.5, 16, -50, 0)
+fly(1)
+check("skimming the ground is no proximity", #notes == 0)
 
 print(failures == 0 and "TRICKS OK" or string.format("TRICKS %d FAILED", failures))
 exit(failures == 0 and 0 or 1)
