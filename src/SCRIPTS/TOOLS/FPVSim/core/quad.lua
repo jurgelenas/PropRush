@@ -18,6 +18,8 @@ local CELL_CUTOFF = 3.1
 -- Voltage sag at full throttle on a full pack, growing by SAG_EMPTY as it drains; settles at SAG_RATE per second
 local SAG_FULL, SAG_EMPTY, SAG_RATE = 0.15, 0.2, 8
 local CRASH_SPEED = 6
+-- Body up-axis height (cos of tilt) below which a quad on the ground tips over: 60 degrees
+local TIP_OVER = 0.5
 
 local Quad = {}
 Quad.__index = Quad
@@ -147,7 +149,7 @@ function Quad:step(dt, sticks, settings)
   end
 
   if self.py < 0 then
-    if v > CRASH_SPEED or (v > 2 and self.uy < 0.7) then
+    if v > CRASH_SPEED or (v > 2 and self.uy < 0.7) or self.uy < TIP_OVER then
       return true
     end
     self.py = 0
