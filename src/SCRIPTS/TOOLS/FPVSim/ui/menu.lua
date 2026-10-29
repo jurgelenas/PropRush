@@ -35,9 +35,7 @@ function Menu.run(event)
   elseif event == EVT_VIRTUAL_ENTER then
     if not item.mode then
       return "settings"
-    elseif #item.maps == 1 then
-      return "flight", item.maps[1]
-    elseif #item.maps > 1 then
+    elseif #item.maps > 0 then
       return "maps", item.maps
     end
   end

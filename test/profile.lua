@@ -51,7 +51,7 @@ local POSES = {
 }
 local sticks = { ail = 0, ele = 0, thr = 0, rud = 0 }
 local settings = load("core/settings")
-for _, id in ipairs({ "pillars", "bando" }) do
+for _, id in ipairs({ "pillars", "bando", "gates" }) do
 Map = load("maps/" .. id, Kit, R)
 drawBoxes = Map.scene.draw
 print("PROF map " .. id)

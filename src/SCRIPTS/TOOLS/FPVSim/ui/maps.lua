@@ -1,4 +1,4 @@
--- Map list of one mode, shown when it has more than one map
+-- Map list of one mode, with each map's best
 
 local app = ...
 
@@ -44,7 +44,12 @@ function Maps.run(event)
   local entry = entries[selected]
   List.lines(split + 3, List.TOP + 3, entry.info)
   local best = Save.bests[entry.id]
-  gfx.text(split + 3, H - gfx.FH - 2, best and string.format("BEST %d", best) or "BEST -")
+  -- Racing bests are lap times in hundredths
+  local text = "BEST -"
+  if best then
+    text = entry.mode == "racing" and string.format("BEST %.2fS", best / 100) or string.format("BEST %d", best)
+  end
+  gfx.text(split + 3, H - gfx.FH - 2, text)
 end
 
 return Maps

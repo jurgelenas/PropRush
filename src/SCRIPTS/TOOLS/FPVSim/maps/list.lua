@@ -1,6 +1,12 @@
 -- Map catalogue for the menus, so maps are only loaded when flown. id: module name under maps/.
 return {
   {
+    id = "gates",
+    name = "GATES",
+    mode = "racing",
+    info = { "Six gates", "round a", "tower" },
+  },
+  {
     id = "bando",
     name = "BANDO",
     mode = "freestyle",
