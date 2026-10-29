@@ -1,0 +1,4 @@
+*.luac
+bin/
+dist/
+TODO.md
