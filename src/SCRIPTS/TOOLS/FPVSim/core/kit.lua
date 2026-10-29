@@ -74,17 +74,20 @@ function Kit.drawGrid(quality)
 end
 
 -- Horizon ring: a ridge and its base line around the camera. It follows the camera, so it is never reached.
--- Ring points this far behind the view direction are skipped (dot product).
-local RING_CULL = -0.2
+-- Ring points more than ~70 degrees off the view direction are skipped (dot product): the screen corners are under
+-- 50 degrees off it, and ring points are at most ~20 degrees apart, so a segment reaching into view is kept.
+local RING_CULL = 0.35
 
 -- Ridge elevations in degrees, evenly spaced around the compass from north turning east, or at the given
 -- azimuths in degrees (ascending, below 360): two points at one azimuth draw a vertical step, as in a skyline.
 function Kit.newRing(elevations, azimuths)
   local n = #elevations
-  local ring = { n = n, sin = {}, cos = {}, tan = {} }
+  local ring = { n = n, sin = {}, cos = {}, tan = {}, step = {} }
   for i = 1, n do
     local a = azimuths and azimuths[i] * math.pi / 180 or (i - 1) * 2 * math.pi / n
     ring.sin[i], ring.cos[i], ring.tan[i] = math.sin(a), math.cos(a), math.tan(elevations[i] * math.pi / 180)
+    -- A vertical step has no base line
+    ring.step[i] = azimuths ~= nil and i > 1 and azimuths[i] == azimuths[i - 1]
   end
   return ring
 end
@@ -93,7 +96,7 @@ Kit.HILLS = Kit.newRing({ 1.5, 3, 2, 4.5, 3.5, 1, 2.5, 5, 3, 2, 1, 3.5, 6, 4, 2,
 
 function Kit.drawRing(ring, dist)
   local ox, _, oz = R.cameraPos()
-  local n, sins, coss, tans = ring.n, ring.sin, ring.cos, ring.tan
+  local n, sins, coss, tans, steps = ring.n, ring.sin, ring.cos, ring.tan, ring.step
   local fx, _, fz = R.forward()
   local len = math.sqrt(fx * fx + fz * fz)
   if len < 0.01 then
@@ -110,7 +113,9 @@ function Kit.drawRing(ring, dist)
       local cx, cy, cz = R.toCamera(x, 0, z)
       local ux, uy, uz = R.toCamera(x, dist * tans[k], z)
       if prev then
-        R.camLine(bx, by, bz, cx, cy, cz, 4)
+        if not steps[k] then
+          R.camLine(bx, by, bz, cx, cy, cz, 4)
+        end
         R.camLine(tx, ty, tz, ux, uy, uz, 4)
       end
       bx, by, bz, tx, ty, tz = cx, cy, cz, ux, uy, uz
@@ -130,6 +135,99 @@ local OUTLINE_FACTOR = 3
 local BOX_SHADE, BOX_EDGE, FAR_SHADE, FAR_EDGE = 0, 4, 1, 2
 local SORT_EVERY = 4
 
+-- Axis-aligned box from its base: centre x, centre z, width (x), depth (z), height, base height y0.
+-- Carries the bounding sphere the scene culls and sorts with.
+local function newBox(x, z, w, d, h, y0)
+  return {
+    x0 = x - w / 2,
+    y0 = y0,
+    z0 = z - d / 2,
+    x1 = x + w / 2,
+    y1 = y0 + h,
+    z1 = z + d / 2,
+    cx = x,
+    cy = y0 + h / 2,
+    cz = z,
+    rad = math.sqrt(w * w + h * h + d * d) / 2,
+    dist = 0,
+  }
+end
+
+local function drawBox(b, fogged)
+  if fogged then
+    R.box(b.x0, b.y0, b.z0, b.x1, b.y1, b.z1, FAR_SHADE, FAR_EDGE)
+  else
+    R.box(b.x0, b.y0, b.z0, b.x1, b.y1, b.z1, BOX_SHADE, BOX_EDGE)
+  end
+end
+
+local function insideBox(b, x, y, z)
+  return x > b.x0 and x < b.x1 and z > b.z0 and z < b.z1 and y > b.y0 and y < b.y1
+end
+
+-- Insertion sort on dist, farthest first: the order barely changes between frames, and B&W radios have no
+-- table lib
+local function sortByDistance(list)
+  for i = 2, #list do
+    local b = list[i]
+    local d = b.dist
+    local j = i - 1
+    while j > 0 and list[j].dist < d do
+      list[j + 1] = list[j]
+      j = j - 1
+    end
+    list[j + 1] = b
+  end
+end
+
+-- Structure parts on one level, drawn far to near
+local function drawLevel(parts, ox, oz, fogged)
+  for i = 1, #parts do
+    local b = parts[i]
+    local dx, dz = b.cx - ox, b.cz - oz
+    b.dist = dx * dx + dz * dz
+  end
+  sortByDistance(parts)
+  for i = 1, #parts do
+    local b = parts[i]
+    if R.sphereVisible(b.cx, b.cy, b.cz, b.rad) then
+      drawBox(b, fogged)
+    end
+  end
+end
+
+-- Levels away from the camera's one go first, from the far end inwards, and the camera's own level last.
+-- Levels never overlap in height, so a sight line crosses them in that order.
+local function drawStructure(st, fogged)
+  local ox, oy, oz = R.cameraPos()
+  local levels, bases = st.levels, st.bases
+  local n = #levels
+  local c = 1
+  while c < n and bases[c + 1] <= oy do
+    c = c + 1
+  end
+  for i = n, c + 1, -1 do
+    drawLevel(levels[i], ox, oz, fogged)
+  end
+  for i = 1, c - 1 do
+    drawLevel(levels[i], ox, oz, fogged)
+  end
+  drawLevel(levels[c], ox, oz, fogged)
+end
+
+local function structureCollides(st, x, y, z)
+  if not insideBox(st.bounds, x, y, z) then
+    return false
+  end
+  local parts = st.parts
+  for i = 1, #parts do
+    if insideBox(parts[i], x, y, z) then
+      return true
+    end
+  end
+  return false
+end
+
 -- Scene: objects drawn back to front, culled to the view, with collision.
 -- Each object has a bounding sphere cx, cy, cz, rad and dist, its squared ground distance from the camera.
 -- Buildings are axis-aligned boxes x0, y0, z0, x1, y1, z1; custom objects carry draw(obj, fogged) and
@@ -141,19 +239,7 @@ function Kit.newScene()
 
   -- Building standing on the ground: centre x, centre z, width (x), depth (z), height
   function scene.addBox(x, z, w, d, h)
-    local b = {
-      x0 = x - w / 2,
-      y0 = 0,
-      z0 = z - d / 2,
-      x1 = x + w / 2,
-      y1 = h,
-      z1 = z + d / 2,
-      cx = x,
-      cy = h / 2,
-      cz = z,
-      rad = math.sqrt(w * w + h * h + d * d) / 2,
-      dist = 0,
-    }
+    local b = newBox(x, z, w, d, h, 0)
     objects[#objects + 1] = b
     return b
   end
@@ -165,18 +251,50 @@ function Kit.newScene()
     return obj
   end
 
-  -- Insertion sort, farthest first: the order barely changes between frames, and B&W radios have no table lib.
-  local function sortByDistance()
-    for i = 2, #objects do
-      local b = objects[i]
-      local d = b.dist
-      local j = i - 1
-      while j > 0 and objects[j].dist < d do
-        objects[j + 1] = objects[j]
-        j = j - 1
+  -- Structure: one building made of boxes, such as floors on columns or a wall with openings, sorted as a
+  -- whole against the rest of the scene. Its parts are grouped into levels by base height and drawn level
+  -- by level, so floors and the columns between them overlap correctly from inside and out. A part must
+  -- stay below the next level's base: columns are split at every floor.
+  -- add(x, z, w, d, h, y0) takes a part as addBox does, standing at height y0.
+  function scene.addStructure()
+    local bounds = newBox(0, 0, 0, 0, 0, 0)
+    local st =
+      { levels = {}, bases = {}, parts = {}, bounds = bounds, draw = drawStructure, collides = structureCollides }
+    local first = true
+
+    function st.add(x, z, w, d, h, y0)
+      local b = newBox(x, z, w, d, h, y0)
+      st.parts[#st.parts + 1] = b
+      local levels, bases = st.levels, st.bases
+      local i = 1
+      while bases[i] and bases[i] < y0 do
+        i = i + 1
       end
-      objects[j + 1] = b
+      if bases[i] ~= y0 then
+        for j = #bases, i, -1 do
+          bases[j + 1], levels[j + 1] = bases[j], levels[j]
+        end
+        bases[i], levels[i] = y0, {}
+      end
+      local level = levels[i]
+      level[#level + 1] = b
+
+      if first then
+        bounds.x0, bounds.y0, bounds.z0, bounds.x1, bounds.y1, bounds.z1 = b.x0, b.y0, b.z0, b.x1, b.y1, b.z1
+        first = false
+      else
+        bounds.x0, bounds.y0, bounds.z0 =
+          math.min(bounds.x0, b.x0), math.min(bounds.y0, b.y0), math.min(bounds.z0, b.z0)
+        bounds.x1, bounds.y1, bounds.z1 =
+          math.max(bounds.x1, b.x1), math.max(bounds.y1, b.y1), math.max(bounds.z1, b.z1)
+      end
+      local bw, bh, bd = bounds.x1 - bounds.x0, bounds.y1 - bounds.y0, bounds.z1 - bounds.z0
+      st.cx, st.cy, st.cz = bounds.x0 + bw / 2, bounds.y0 + bh / 2, bounds.z0 + bd / 2
+      st.rad = math.sqrt(bw * bw + bh * bh + bd * bd) / 2
+      return b
     end
+
+    return scene.addObject(st)
   end
 
   function scene.draw(quality)
@@ -190,7 +308,7 @@ function Kit.newScene()
     end
     frame = frame + 1
     if frame % SORT_EVERY == 0 then
-      sortByDistance()
+      sortByDistance(objects)
     end
     local outlineDist = maxDist * OUTLINE_FACTOR
     outlineDist = outlineDist * outlineDist
@@ -202,10 +320,8 @@ function Kit.newScene()
         local draw = b.draw
         if draw then
           draw(b, b.dist >= maxDist)
-        elseif b.dist < maxDist then
-          R.box(b.x0, b.y0, b.z0, b.x1, b.y1, b.z1, BOX_SHADE, BOX_EDGE)
         else
-          R.box(b.x0, b.y0, b.z0, b.x1, b.y1, b.z1, FAR_SHADE, FAR_EDGE)
+          drawBox(b, b.dist >= maxDist)
         end
       end
     end
@@ -218,13 +334,26 @@ function Kit.newScene()
         if b.collides and b.collides(b, x, y, z) then
           return true
         end
-      elseif x > b.x0 and x < b.x1 and z > b.z0 and z < b.z1 and y < b.y1 then
+      elseif insideBox(b, x, y, z) then
         return true
       end
     end
   end
 
   return scene
+end
+
+-- Launch pad on the ground: a square with a cross, centred on x, z
+local PAD = 1.5
+
+function Kit.drawPad(x, z)
+  local x0, z0, x1, z1 = x - PAD, z - PAD, x + PAD, z + PAD
+  R.line(x0, 0, z0, x1, 0, z0, 4)
+  R.line(x1, 0, z0, x1, 0, z1, 4)
+  R.line(x1, 0, z1, x0, 0, z1, 4)
+  R.line(x0, 0, z1, x0, 0, z0, 4)
+  R.line(x0, 0, z0, x1, 0, z1, 4)
+  R.line(x1, 0, z0, x0, 0, z1, 4)
 end
 
 -- Video signal loss at a point: 0 clean within fade metres (3D) of the centre (cx, 0, cz), 1 lost at lost

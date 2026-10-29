@@ -8,8 +8,10 @@ local sin, cos, tan = math.sin, math.cos, math.tan
 local RAD = math.pi / 180
 local NEAR = 0.2
 local MAX_VERTS = 12
--- Boxes shorter than this on screen get their silhouette outline only: fill rows and inner edges are invisible there
+-- Boxes shorter or narrower than this on screen get their silhouette outline only: fill rows and inner edges are
+-- invisible there
 local DETAIL_PX = 6
+local THIN_PX = 4
 -- Below this height the edges between faces are too short to read, so only the outline is drawn
 local EDGES_PX = 16
 
@@ -173,14 +175,14 @@ end
 -- Faces with outward-facing vertex order, so an edge shared by two faces runs in opposite directions.
 local FACE_NX, FACE_PX = { 1, 5, 7, 3 }, { 2, 4, 8, 6 }
 local FACE_NZ, FACE_PZ = { 1, 3, 4, 2 }, { 5, 6, 8, 7 }
-local FACE_TOP = { 3, 7, 8, 4 }
+local FACE_TOP, FACE_BOTTOM = { 3, 7, 8, 4 }, { 1, 2, 6, 5 }
 
 -- Per camera region: silhouette corner loop and the inner edges between visible faces.
--- Key: (sx + 1) + 3 * (sz + 1) + 9 * top, with sx/sz in -1..1 (camera before/within/after the box).
+-- Key: (sx + 1) + 3 * (sz + 1) + 9 * (sy + 1), with sx/sy/sz in -1..1 (camera before/within/after the box).
 local SILHOUETTE, INNER = {}, {}
 
 local function buildSilhouettes()
-  for top = 0, 1 do
+  for sy = -1, 1 do
     for sz = -1, 1 do
       for sx = -1, 1 do
         local faces = {}
@@ -194,8 +196,10 @@ local function buildSilhouettes()
         elseif sz > 0 then
           faces[#faces + 1] = FACE_PZ
         end
-        if top == 1 then
+        if sy > 0 then
           faces[#faces + 1] = FACE_TOP
+        elseif sy < 0 then
+          faces[#faces + 1] = FACE_BOTTOM
         end
         -- Directed edges keyed a * 16 + b; a shared edge cancels against its reverse
         local edges, inner = {}, {}
@@ -225,7 +229,7 @@ local function buildSilhouettes()
             break
           end
         end
-        local key = (sx + 1) + 3 * (sz + 1) + 9 * top
+        local key = (sx + 1) + 3 * (sz + 1) + 9 * (sy + 1)
         SILHOUETTE[key], INNER[key] = loop, inner
       end
     end
@@ -239,8 +243,8 @@ buildSilhouettes()
 function R.box(x0, y0, z0, x1, y1, z1, shade, edgeShade)
   local sx = ox < x0 and -1 or (ox > x1 and 1 or 0)
   local sz = oz < z0 and -1 or (oz > z1 and 1 or 0)
-  local top = oy > y1 and 1 or 0
-  local key = (sx + 1) + 3 * (sz + 1) + 9 * top
+  local sy = oy < y0 and -1 or (oy > y1 and 1 or 0)
+  local key = (sx + 1) + 3 * (sz + 1) + 9 * (sy + 1)
   local loop = SILHOUETTE[key]
   local n = #loop
   if n == 0 then
@@ -276,11 +280,17 @@ function R.box(x0, y0, z0, x1, y1, z1, shade, edgeShade)
 
   local inner = INNER[key]
   if inFront == 8 then
-    local ymin, ymax = 1e9, -1e9
+    local xmin, xmax, ymin, ymax = 1e9, -1e9, 1e9, -1e9
     for i = 1, n do
       local c = loop[i]
-      local y = BSY[c]
-      SX[i], SY[i] = BSX[c], y
+      local x, y = BSX[c], BSY[c]
+      SX[i], SY[i] = x, y
+      if x < xmin then
+        xmin = x
+      end
+      if x > xmax then
+        xmax = x
+      end
       if y < ymin then
         ymin = y
       end
@@ -288,7 +298,7 @@ function R.box(x0, y0, z0, x1, y1, z1, shade, edgeShade)
         ymax = y
       end
     end
-    if not shade or ymax - ymin < DETAIL_PX then
+    if not shade or ymax - ymin < DETAIL_PX or xmax - xmin < THIN_PX then
       local px, py = SX[n], SY[n]
       for i = 1, n do
         sink.line(px, py, SX[i], SY[i], edgeShade)

@@ -14,22 +14,10 @@ end
 scene.addBox(-25, 110, 16, 10, 14)
 scene.addBox(30, 120, 10, 18, 22)
 
--- Launch pad: a square with a cross, centred on the spawn point
-local PAD = 1.5
-
-local function drawPad()
-  R.line(-PAD, 0, -PAD, PAD, 0, -PAD, 4)
-  R.line(PAD, 0, -PAD, PAD, 0, PAD, 4)
-  R.line(PAD, 0, PAD, -PAD, 0, PAD, 4)
-  R.line(-PAD, 0, PAD, -PAD, 0, -PAD, 4)
-  R.line(-PAD, 0, -PAD, PAD, 0, PAD, 4)
-  R.line(PAD, 0, -PAD, -PAD, 0, PAD, 4)
-end
-
 function Map.draw(quality)
   Kit.drawGrid(quality)
   Kit.drawRing(Kit.HILLS, Kit.horizon(quality))
-  drawPad()
+  Kit.drawPad(0, 0)
   scene.draw(quality)
 end
 
