@@ -78,6 +78,8 @@ function Quad:reset(x, y, z, headingDeg)
   self.grounded = false
   -- Pitch, roll and yaw turned (radians, body axes) since freestyle scoring last read them
   self.turnPitch, self.turnRoll, self.turnYaw = 0, 0, 0
+  -- Hardest contact and prop strike (speed into the surface, edge-on share) since the sound last read them
+  self.hit, self.struck = 0, 0
 end
 
 function Quad:speed()
@@ -218,6 +220,9 @@ function Quad:contact(nx, ny, nz, dt, soft)
     if vn > flat + (limit - flat) * edge then
       return true
     end
+    if vn > self.hit then
+      self.hit = vn
+    end
     local k = vn * (vn > BOUNCE_SPEED and 1 + BOUNCE or 1)
     self.vx, self.vy, self.vz = self.vx + k * nx, self.vy + k * ny, self.vz + k * nz
     local vs = vn * sqrt(edge)
@@ -232,6 +237,9 @@ function Quad:contact(nx, ny, nz, dt, soft)
           w = -w
         end
         self.wx, self.wy, self.wz = ax * w, ay * w, az * w
+        if vs > self.struck then
+          self.struck = vs
+        end
         local t = STRIKE_TIME * vs
         self.strike = t > STRIKE_MAX and STRIKE_MAX or t
       end

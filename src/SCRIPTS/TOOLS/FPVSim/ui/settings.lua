@@ -4,6 +4,7 @@
 local app = ...
 
 local gfx, List, Save, settings, stickRate, input = app.gfx, app.list, app.save, app.settings, app.rates, app.input
+local Sound = app.sound
 
 local ROW_H = 8
 local PREVIEW_W, PREVIEW_H = 42, 34
@@ -64,6 +65,9 @@ local function change(item, d)
       v = item.max
     end
     settings[item.key] = v
+  end
+  if item.preview then
+    Sound.preview(item.key)
   end
 end
 
