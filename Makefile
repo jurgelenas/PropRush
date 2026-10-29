@@ -20,7 +20,7 @@ help:
 	@echo "  typecheck       Run lua-language-server type checking"
 	@echo "  check           Run format-check and typecheck"
 	@echo "  sync            Sync source files to EdgeTX simulator SD card"
-	@echo "  push            Install package to EdgeTX radio and eject"
+	@echo "  push            Install package to EdgeTX radio as bytecode and eject"
 
 install-stylua:
 	mkdir -p bin
@@ -50,4 +50,4 @@ sync:
 	edgetx-cli dev sync ../edgetx-sdcard
 
 push:
-	edgetx-cli pkg install . --eject
+	edgetx-cli pkg install . --pre-compile --eject

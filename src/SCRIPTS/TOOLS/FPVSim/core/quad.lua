@@ -1,3 +1,6 @@
+-- stickRate: core/rates
+local stickRate = ...
+
 -- World axes: x east, y up, z north. Body axes r/u/f (right, up, forward) are unit vectors in world space.
 
 local sin, cos, sqrt, abs, asin, atan = math.sin, math.cos, math.sqrt, math.abs, math.asin, math.atan
@@ -31,12 +34,6 @@ local function clamp1(x)
     return -1
   end
   return x
-end
-
--- Betaflight-style rate curve: centre sensitivity at the stick centre, max rate at full deflection
-local function rateCurve(x, center, max)
-  local a = abs(x)
-  return x * (center + (max - center) * a * a)
 end
 
 function Quad.new()
@@ -106,13 +103,14 @@ end
 -- Sticks: ail/ele/rud -1..1, thr 0..1. Returns true on a crash.
 function Quad:step(dt, sticks, settings)
   local pitchRate, rollRate
-  local yawRate = rateCurve(sticks.rud, settings.rateCenter, settings.rateMax)
-  if settings.angleMode then
+  local s = settings
+  local yawRate = stickRate(sticks.rud, s.yawRcRate, s.yawRate, s.yawExpo)
+  if s.angleMode then
     pitchRate = (-sticks.ele * settings.maxAngle - self:pitchDeg()) * ANGLE_GAIN
     rollRate = (sticks.ail * settings.maxAngle - self:rollDeg()) * ANGLE_GAIN
   else
-    pitchRate = -rateCurve(sticks.ele, settings.rateCenter, settings.rateMax)
-    rollRate = rateCurve(sticks.ail, settings.rateCenter, settings.rateMax)
+    pitchRate = -stickRate(sticks.ele, s.pitchRcRate, s.pitchRate, s.pitchExpo)
+    rollRate = stickRate(sticks.ail, s.rollRcRate, s.rollRate, s.rollExpo)
   end
   local thr = 0
   if not self.dead then
@@ -132,20 +130,23 @@ function Quad:step(dt, sticks, settings)
   self.py = self.py + self.vy * dt
   self.pz = self.pz + self.vz * dt
 
-  self.battery = self.battery - dt * (0.1 + 0.9 * thr * sqrt(thr)) / BATTERY_LIFE
-  if self.battery < 0 then
-    self.battery = 0
-  end
-  local k = self.battery * 10
-  local i = k // 1
-  local rest = i >= 10 and CELL_FULL or CELL_CURVE[i] + (CELL_CURVE[i + 1] - CELL_CURVE[i]) * (k - i)
-  -- Current, and so sag, grows with throttle^1.5 like the drain
-  local sag = thr * sqrt(thr) * (SAG_FULL + SAG_EMPTY * (1 - self.battery))
-  local f = SAG_RATE * dt
-  self.sag = self.sag + (sag - self.sag) * (f > 1 and 1 or f)
-  self.voltage = rest - self.sag
-  if self.voltage < CELL_CUTOFF then
-    self.dead = true
+  -- Battery simulation off: the pack stays full
+  if settings.batterySim then
+    self.battery = self.battery - dt * (0.1 + 0.9 * thr * sqrt(thr)) / BATTERY_LIFE
+    if self.battery < 0 then
+      self.battery = 0
+    end
+    local k = self.battery * 10
+    local i = k // 1
+    local rest = i >= 10 and CELL_FULL or CELL_CURVE[i] + (CELL_CURVE[i + 1] - CELL_CURVE[i]) * (k - i)
+    -- Current, and so sag, grows with throttle^1.5 like the drain
+    local sag = thr * sqrt(thr) * (SAG_FULL + SAG_EMPTY * (1 - self.battery))
+    local f = SAG_RATE * dt
+    self.sag = self.sag + (sag - self.sag) * (f > 1 and 1 or f)
+    self.voltage = rest - self.sag
+    if self.voltage < CELL_CUTOFF then
+      self.dead = true
+    end
   end
 
   if self.py < 0 then

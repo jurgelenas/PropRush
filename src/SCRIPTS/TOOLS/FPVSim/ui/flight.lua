@@ -2,10 +2,9 @@ local app = ...
 
 local gfx, settings, input = app.gfx, app.settings, app.input
 local R = app.load("core/render3d")
-local Quad = app.load("core/quad")
+local Quad = app.load("core/quad", app.rates)
 local Kit = app.load("core/kit", R)
 local Hud = app.load("ui/hud", gfx)
-local Map = app.load("maps/pillars", Kit, R)
 
 R.setSink(gfx)
 
@@ -18,6 +17,7 @@ local ARM_THROTTLE = 0.05
 local OUT_OF_RANGE = 0.1
 
 local quad = Quad.new()
+local Map
 -- "arming": waiting for throttle low; "flying"; "crashed"
 local state
 local stateTime = 0
@@ -30,13 +30,17 @@ end
 
 local Flight = {}
 
-function Flight.enter()
+-- entry: the map's catalogue entry
+function Flight.enter(entry)
+  Map = nil
+  Map = app.load("maps/" .. entry.id, Kit, R)
   respawn()
 end
 
 function Flight.run(event, dt)
   if event == EVT_VIRTUAL_EXIT then
-    return "intro"
+    Map = nil
+    return "menu"
   end
 
   local sticks = input.read()

@@ -3,6 +3,9 @@
 
 local H = {}
 
+-- The tool's io calls go to H.files; the harness itself writes real files
+local hostIo = io
+
 local SRC = "src"
 
 H.stats = { lines = 0, linePixels = 0, texts = 0, rects = 0 }
@@ -36,7 +39,7 @@ function H.install(w, h)
   LCD_W, LCD_H = w, h
   SOLID, DOTTED, FORCE, ERASE = 0xff, 0x55, 0x02, 0x04
   SMLSIZE, RIGHT, CENTER, INVERS = 0x0200, 0x0400, 0x0800, 0x0010
-  EVT_VIRTUAL_EXIT, EVT_VIRTUAL_ENTER = 1001, 1002
+  EVT_VIRTUAL_EXIT, EVT_VIRTUAL_ENTER, EVT_VIRTUAL_NEXT, EVT_VIRTUAL_PREV = 1001, 1002, 1003, 1004
   GREY = nil
   local s = H.stats
   lcd = {
@@ -78,6 +81,32 @@ function H.install(w, h)
   getTime = function()
     return H.time
   end
+  H.files = {}
+  -- EdgeTX io: io.read(f, n), io.write(f, ...), io.close(f)
+  io = {
+    open = function(path, mode)
+      if mode == "r" and not H.files[path] then
+        return nil
+      end
+      return { path = path, mode = mode, pos = 1, buf = "" }
+    end,
+    read = function(f, n)
+      local s = string.sub(H.files[f.path], f.pos, f.pos + n - 1)
+      f.pos = f.pos + #s
+      return s
+    end,
+    write = function(f, ...)
+      for _, v in ipairs({ ... }) do
+        f.buf = f.buf .. tostring(v)
+      end
+      return f
+    end,
+    close = function(f)
+      if f.mode == "w" then
+        H.files[f.path] = f.buf
+      end
+    end,
+  }
   loadScript = function(path)
     return assert(loadfile(SRC .. path))
   end
@@ -129,7 +158,7 @@ function H.savePbm(path)
     end
     out[#out + 1] = table.concat(row, " ") .. "\n"
   end
-  local f = assert(io.open(path, "w"))
+  local f = assert(hostIo.open(path, "w"))
   f:write(table.concat(out))
   f:close()
 end

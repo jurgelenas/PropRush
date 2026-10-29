@@ -8,7 +8,7 @@ local function load(name, ...)
 end
 local gfx = load("gfx/bw")
 local R = load("core/render3d")
-local Quad = load("core/quad")
+local Quad = load("core/quad", load("core/rates"))
 local Kit = load("core/kit", R)
 local Map = load("maps/pillars", Kit, R)
 local settings = load("core/settings")

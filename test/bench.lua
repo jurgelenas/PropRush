@@ -28,6 +28,9 @@ local SCRIPT = {
   { 3.0, 0, 0, -1024, 0 },
 }
 
+-- Intro, then FREESTYLE in the menu
+frame(EVT_VIRTUAL_ENTER)
+frame(EVT_VIRTUAL_NEXT)
 frame(EVT_VIRTUAL_ENTER)
 local worst, total, n = 0, 0, 0
 for _, step in ipairs(SCRIPT) do

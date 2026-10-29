@@ -1,8 +1,6 @@
 local Kit, R = ...
 
 local Map = {
-  name = "PILLARS",
-  mode = "freestyle",
   spawn = { x = 0, y = 0, z = 0, heading = 0 },
 }
 
