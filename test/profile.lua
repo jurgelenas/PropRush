@@ -10,7 +10,13 @@ end
 local gfx = load("gfx/bw")
 local R = load("core/render3d")
 local Quad = load("core/quad")
-local World = load("core/world", R)
+local Kit = load("core/kit", R)
+local Map = load("maps/pillars", Kit, R)
+local function drawGround(qual)
+  Kit.drawGrid(qual)
+  Kit.drawRing(Kit.HILLS, Kit.horizon(qual))
+end
+local drawBoxes = Map.scene.draw
 R.setSink(gfx)
 
 local REPS = 200
@@ -53,16 +59,16 @@ for _, p in ipairs(POSES) do
   local parts = {}
   for qual = 1, 3 do
     H.resetStats()
-    World.drawGround(qual)
+    drawGround(qual)
     local gl = H.stats.lines
     H.resetStats()
-    World.drawBoxes(qual)
+    drawBoxes(qual)
     local bl = H.stats.lines
     parts[#parts + 1] = string.format(
       "Q%d ground=%.0f%%(%d) boxes=%.0f%%(%d)",
       qual,
-      100 * time(function() World.drawGround(qual) end) / budget, gl,
-      100 * time(function() World.drawBoxes(qual) end) / budget, bl
+      100 * time(function() drawGround(qual) end) / budget, gl,
+      100 * time(function() drawBoxes(qual) end) / budget, bl
     )
   end
   local realFill = gfx.fill
@@ -74,12 +80,12 @@ for _, p in ipairs(POSES) do
     end
     rows = rows + math.max(0, math.min(b, LCD_H) - math.max(a, 0))
   end
-  World.drawBoxes(2)
-  local noFill = time(function() World.drawBoxes(2) end)
+  drawBoxes(2)
+  local noFill = time(function() drawBoxes(2) end)
   gfx.fill = realFill
   local realLine = gfx.line
   gfx.line = function() end
-  local noLines = time(function() World.drawBoxes(1) end)
+  local noLines = time(function() drawBoxes(1) end)
   gfx.line = realLine
   parts[#parts + 1] = string.format("LOW boxes-without-lines=%.0f%%", 100 * noLines / budget)
   parts[#parts + 1] = string.format("| MED boxes-without-fill=%.0f%% rows=%.0f", 100 * noFill / budget, rows)

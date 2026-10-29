@@ -106,6 +106,13 @@ function R.camLine(ax, ay, az, bx, by, bz, shade)
   sink.line(cx + ax * focal / az, cy - ay * focal / az, cx + bx * focal / bz, cy - by * focal / bz, shade)
 end
 
+-- Line given in world space
+function R.line(ax, ay, az, bx, by, bz, shade)
+  ax, ay, az = toCamera(ax, ay, az)
+  bx, by, bz = toCamera(bx, by, bz)
+  R.camLine(ax, ay, az, bx, by, bz, shade)
+end
+
 -- Clips CX/CY/CZ[1..n] against the near plane, projects into SX/SY, fills.
 local function clipProjectFill(n, shade, opaque)
   local m = 0

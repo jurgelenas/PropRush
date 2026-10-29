@@ -3,8 +3,9 @@ local app = ...
 local gfx, settings, input = app.gfx, app.settings, app.input
 local R = app.load("core/render3d")
 local Quad = app.load("core/quad")
-local World = app.load("core/world", R)
+local Kit = app.load("core/kit", R)
 local Hud = app.load("ui/hud", gfx)
+local Map = app.load("maps/pillars", Kit, R)
 
 R.setSink(gfx)
 
@@ -22,7 +23,7 @@ local state
 local stateTime = 0
 
 local function respawn()
-  local s = World.spawn
+  local s = Map.spawn
   quad:reset(s.x, s.y, s.z, s.heading)
   state = "arming"
 end
@@ -52,10 +53,11 @@ function Flight.run(event, dt)
       message = "THROTTLE DOWN"
     end
   elseif state == "flying" then
+    Map.update(dt, quad)
     while dt > 0 do
       local h = dt > MAX_STEP and MAX_STEP or dt
       dt = dt - h
-      if quad:step(h, sticks, settings) or World.collides(quad.px, quad.py, quad.pz) then
+      if quad:step(h, sticks, settings) or Map.collides(quad.px, quad.py, quad.pz) then
         state = "crashed"
         stateTime = 0
         break
@@ -78,13 +80,13 @@ function Flight.run(event, dt)
   end
 
   -- Loss rises with the square of distance past the fade start: a slow onset, then a quick breakup
-  local loss = World.signalLoss(quad.px, quad.py, quad.pz)
+  local loss = Map.signalLoss(quad.px, quad.py, quad.pz)
   loss = loss * loss
 
   gfx.clear()
   if loss < 1 then
     R.setCamera(quad, settings.camAngle, 0, 0, gfx.W, gfx.H, settings.fov)
-    World.draw(settings.quality)
+    Map.draw(settings.quality)
   end
   if loss > 0 then
     gfx.static(loss)

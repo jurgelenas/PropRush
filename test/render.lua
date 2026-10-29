@@ -9,7 +9,8 @@ end
 local gfx = load("gfx/bw")
 local R = load("core/render3d")
 local Quad = load("core/quad")
-local World = load("core/world", R)
+local Kit = load("core/kit", R)
+local Map = load("maps/pillars", Kit, R)
 local settings = load("core/settings")
 local Hud = load("ui/hud", gfx)
 R.setSink(gfx)
@@ -21,6 +22,8 @@ local POSES = {
   { "high", 0, 20, 0, 0, -0.9, 0 },
   { "bank", 0, 6, 20, 20, -0.6, 0.6 },
   { "steep", 0, 60, 0, 0, -1.0, 0.7 },
+  -- Looking down at the launch pad from behind it
+  { "pad", 0, 8, -12, 0, -1.4, 0 },
   -- Out of range: 250, 330 and 410 m from the map centre
   { "fade", 0, 5, 310, 0, -0.6, 0 },
   { "breakup", 0, 5, 390, 0, -0.6, 0 },
@@ -32,8 +35,8 @@ for _, p in ipairs(POSES) do
   q:rotate(p[6], 0, p[7])
   lcd.clear()
   R.setCamera(q, settings.camAngle, 0, 0, LCD_W, LCD_H, settings.fov)
-  World.draw(settings.quality)
-  local loss = World.signalLoss(q.px, q.py, q.pz) ^ 2
+  Map.draw(settings.quality)
+  local loss = Map.signalLoss(q.px, q.py, q.pz) ^ 2
   if loss > 0 then
     if loss >= 1 then
       lcd.clear()
