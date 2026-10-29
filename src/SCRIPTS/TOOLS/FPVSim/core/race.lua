@@ -24,24 +24,21 @@ function Race:reset()
   -- Best lap of this run in seconds, and the lap just closed (taken by the caller)
   self.best, self.finished = nil, nil
   self.show = 0
-  self.ox = nil
   -- HUD: goal the next gate and its distance (top right), clock the lap time (top centre), note a closed lap
   self.goal, self.clock, self.note = nil, nil, nil
   self.goalVal, self.clockVal, self.lapNote = nil, nil, nil
 end
 
--- Once per frame of flight, after the physics
-function Race:update(dt, q)
+-- Once per frame of flight, after the physics; ox, oy, oz: where the quad was before it
+function Race:update(dt, q, ox, oy, oz)
   local gates = self.gates
   local n = #gates
   local px, py, pz = q.px, q.py, q.pz
-  local ox, oy, oz = self.ox, self.oy, self.oz
-  self.ox, self.oy, self.oz = px, py, pz
   if self.lap > 0 then
     self.time = self.time + dt
   end
   local g = gates[self.next]
-  if ox and through(g, ox, oy, oz, px, py, pz) then
+  if through(g, ox, oy, oz, px, py, pz) then
     if self.next == 1 then
       if self.lap > 0 then
         local t = self.time

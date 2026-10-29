@@ -16,11 +16,13 @@ local gates = Map.gates
 local r = Race.new(Map)
 local p = { px = 0, py = 1.5, pz = 0 }
 
--- Frames of dt seconds standing still at x, y, z
+-- Frames of dt seconds standing still at x, y, z, the first moving there from the last
 local function at(x, y, z, frames, dt)
+  local ox, oy, oz = p.px, p.py, p.pz
   p.px, p.py, p.pz = x, y, z
   for _ = 1, frames or 1 do
-    r:update(dt or 0.05, p)
+    r:update(dt or 0.05, p, ox, oy, oz)
+    ox, oy, oz = x, y, z
   end
 end
 
@@ -57,6 +59,7 @@ local function fly(x, y, z, vx, vz, t)
   q.vx, q.vz = vx, vz
   r = Race.new(Map)
   for _ = 1, t / 0.05 do
+    local fx, fy, fz = q.px, q.py, q.pz
     for _ = 1, 5 do
       local ox, oy, oz = q.px, q.py, q.pz
       local crashed = q:step(0.01, sticks, settings)
@@ -65,7 +68,7 @@ local function fly(x, y, z, vx, vz, t)
         return q, true
       end
     end
-    r:update(0.05, q)
+    r:update(0.05, q, fx, fy, fz)
   end
   return q, false
 end

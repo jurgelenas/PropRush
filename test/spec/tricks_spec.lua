@@ -66,10 +66,11 @@ end
 local function fly(s, ail, ele, thr, rud)
   sticks.ail, sticks.ele, sticks.thr, sticks.rud = ail or 0, ele or 0, thr or HOVER, rud or 0
   for _ = 1, math.floor(s / 0.05 + 0.5) do
+    local ox, oy, oz = q.px, q.py, q.pz
     for _ = 1, 5 do
       q:step(0.01, sticks, settings)
     end
-    t:update(0.05, q)
+    t:update(0.05, q, ox, oy, oz)
     if t.note and t.note ~= notes[#notes] then
       notes[#notes + 1] = t.note
     end
@@ -263,13 +264,13 @@ describe("tricks", function()
       assert.is_true(noted("WINDOW +10"), state())
     end)
     it("again straight after scores nothing", function()
-      q.pz, q.vz, t.ox = 10, 10, nil
+      q.pz, q.vz = 10, 10
       fly(1.5)
       assert.equal(10, t.score, state())
     end)
     it("but does once the combo is over", function()
       fly(2)
-      q.pz, q.vz, t.ox = 10, 10, nil
+      q.pz, q.vz = 10, 10
       fly(1.5)
       assert.equal(20, t.score, state())
     end)

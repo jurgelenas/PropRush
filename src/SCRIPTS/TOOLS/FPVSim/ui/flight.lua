@@ -118,6 +118,7 @@ function Flight.run(event, dt)
   elseif state == "flying" then
     Map.update(dt, quad)
     local frame = dt
+    local fx, fy, fz = quad.px, quad.py, quad.pz
     while dt > 0 do
       local h = dt > MAX_STEP and MAX_STEP or dt
       dt = dt - h
@@ -161,13 +162,13 @@ function Flight.run(event, dt)
       end
     end
     if tricks and state == "flying" then
-      tricks:update(frame, quad)
+      tricks:update(frame, quad, fx, fy, fz)
       if runBest and not passedBest and tricks.score > runBest then
         passedBest = true
         Sound.cue("record")
       end
     elseif race and state == "flying" then
-      race:update(frame, quad)
+      race:update(frame, quad, fx, fy, fz)
       -- Lap times are kept in hundredths, lowest best
       local lap = race.finished
       if lap then
