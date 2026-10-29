@@ -11,7 +11,8 @@ R.setSink(gfx)
 local MAX_STEP = 0.02
 -- Frames longer than this (menu pauses, load hitches) are not simulated in full
 local MAX_FRAME = 0.1
-local CRASH_SHOW = 1.5
+-- Long enough to read the run's score
+local CRASH_SHOW = 2
 -- Crash static: full snow for CRASH_HOLD seconds, then fading out until the respawn
 local CRASH_HOLD = 0.2
 local ARM_THROTTLE = 0.05
@@ -19,7 +20,9 @@ local ARM_THROTTLE = 0.05
 local OUT_OF_RANGE = 0.1
 
 local quad = Quad.new()
-local Map
+local Map, mapId
+-- Freestyle maps only: scoring, and the crash screen's score line
+local tricks, result
 -- "arming": waiting for throttle low; "flying"; "crashed"
 local state
 local stateTime = 0
@@ -28,6 +31,23 @@ local function respawn()
   local s = Map.spawn
   quad:reset(s.x, s.y, s.z, s.heading)
   state = "arming"
+  if tricks then
+    tricks:reset()
+  end
+end
+
+-- The run ends: the score is kept if it is the map's best
+local function crash()
+  state = "crashed"
+  stateTime = 0
+  if tricks then
+    local score = tricks.score
+    if score > 0 and app.save.record(mapId, score) then
+      result = string.format("NEW BEST %d", score)
+    else
+      result = string.format("PTS %d", score)
+    end
+  end
 end
 
 local Flight = {}
@@ -36,13 +56,18 @@ local Flight = {}
 function Flight.enter(entry)
   Map = nil
   Map = app.load("maps/" .. entry.id, Kit, R)
+  mapId = entry.id
+  tricks = entry.mode == "freestyle" and app.load("core/tricks").new() or nil
   R.setView(0, 0, gfx.W, gfx.H, settings.fov, settings.camAngle)
   respawn()
 end
 
 function Flight.run(event, dt)
   if event == EVT_VIRTUAL_EXIT then
-    Map = nil
+    if tricks and state ~= "crashed" and tricks.score > 0 then
+      app.save.record(mapId, tricks.score)
+    end
+    Map, tricks = nil, nil
     return "menu"
   end
 
@@ -61,6 +86,7 @@ function Flight.run(event, dt)
     end
   elseif state == "flying" then
     Map.update(dt, quad)
+    local frame = dt
     while dt > 0 do
       local h = dt > MAX_STEP and MAX_STEP or dt
       dt = dt - h
@@ -71,8 +97,7 @@ function Flight.run(event, dt)
         crashed = hit == true or hit and Kit.collide(hit, quad, ox, oy, oz, h)
       end
       if crashed then
-        state = "crashed"
-        stateTime = 0
+        crash()
         break
       end
     end
@@ -80,9 +105,11 @@ function Flight.run(event, dt)
       message = "BATTERY EMPTY"
       -- Motors are off: the run ends where the quad comes down, crash or not
       if state == "flying" and quad.grounded then
-        state = "crashed"
-        stateTime = 0
+        crash()
       end
+    end
+    if tricks and state == "flying" then
+      tricks:update(frame, quad)
     end
   else
     stateTime = stateTime + dt
@@ -113,7 +140,12 @@ function Flight.run(event, dt)
       message = "OUT OF RANGE"
     end
   end
-  Hud.draw(quad, settings, nil, message)
+  local goal, note
+  if tricks then
+    goal = tricks.goal
+    note = state == "crashed" and result or tricks.note
+  end
+  Hud.draw(quad, settings, goal, message, note)
 end
 
 return Flight

@@ -74,6 +74,8 @@ function Quad:reset(x, y, z, headingDeg)
   self.strike = 0
   self.wx, self.wy, self.wz = 0, 0, 0
   self.grounded = false
+  -- Pitch, roll and yaw turned (radians, body axes) since freestyle scoring last read them
+  self.turnPitch, self.turnRoll, self.turnYaw = 0, 0, 0
 end
 
 function Quad:speed()
@@ -118,6 +120,8 @@ function Quad:rotate(pitchUp, yawRight, rollRight)
   self.rx, self.ry, self.rz = rx, ry, rz
   self.ux, self.uy, self.uz = ux, uy, uz
   self.fx, self.fy, self.fz = fx, fy, fz
+  self.turnPitch, self.turnRoll, self.turnYaw =
+    self.turnPitch + pitchUp, self.turnRoll + rollRight, self.turnYaw + yawRight
 end
 
 -- Sticks: ail/ele/rud -1..1, thr 0..1. Returns true on a crash.

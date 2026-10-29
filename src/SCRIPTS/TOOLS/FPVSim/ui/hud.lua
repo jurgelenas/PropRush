@@ -13,8 +13,9 @@ local batVal, batStr, altVal, altStr, spdVal, spdStr, fpsVal, fpsStr
 -- Frames counted since fpsStart (getTime ticks of 10 ms), shown once a second
 local frames, fpsStart = 0, 0
 
--- goal: top-right text (e.g. "PTS 1460") or nil; message: centred banner or nil
-function Hud.draw(q, settings, goal, message)
+-- goal: top-right text (e.g. "PTS 1460") or nil; message: centred banner or nil; note: a line under the
+-- crosshair (a trick, a combo) or nil
+function Hud.draw(q, settings, goal, message, note)
   local W, H, FH = gfx.W, gfx.H, gfx.FH
 
   gfx.rect(0, 0, W, FH + 1, 0)
@@ -67,6 +68,9 @@ function Hud.draw(q, settings, goal, message)
 
   if message then
     gfx.text(W / 2, cy - 12, message, "c", true, true)
+  end
+  if note then
+    gfx.text(W / 2, cy + 5, note, "c", false, true)
   end
 end
 
