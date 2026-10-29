@@ -5,18 +5,20 @@ H.install(128, 64)
 
 local CORE = "src/SCRIPTS/TOOLS/FPVSim/core/"
 local Quad = assert(loadfile(CORE .. "quad.lua"))(assert(loadfile(CORE .. "rates.lua"))())
-local Kit = assert(loadfile(CORE .. "kit.lua"))(assert(loadfile(CORE .. "render3d.lua"))())
-local Tricks = assert(loadfile(CORE .. "tricks.lua"))(Kit)
+local R = assert(loadfile(CORE .. "render3d.lua"))()
+local Scene = assert(loadfile(CORE .. "scene.lua"))(R)
+local Course = assert(loadfile(CORE .. "course.lua"))(R, Scene)
+local Tricks = assert(loadfile(CORE .. "tricks.lua"))(Course)
 
 -- A wall across z = 20 with a 4 x 3 m window at x -2..2, y 2..5, and a long wall along x = 30
-local scene = Kit.newScene()
+local scene = Scene.new()
 local wall = scene.addStructure()
 wall.add(-6, 20, 8, 0.6, 8, 0)
 wall.add(6, 20, 8, 0.6, 8, 0)
 wall.add(0, 20, 4, 0.6, 2, 0)
 wall.add(0, 20, 4, 0.6, 3, 5)
 scene.addBox(30.5, 50, 1, 100, 10)
-local map = { gaps = { Kit.gap("WINDOW", 10, -2, 2, 20, 2, 5, 20) }, near = scene.near }
+local map = { gaps = { Course.gap("WINDOW", 10, -2, 2, 20, 2, 5, 20) }, near = scene.near }
 
 local settings = {
   angleMode = false,

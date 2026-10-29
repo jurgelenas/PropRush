@@ -9,7 +9,9 @@ end
 local gfx = load("gfx/bw")
 local R = load("core/render3d")
 local Quad = load("core/quad", load("core/rates"))
-local Kit = load("core/kit", R)
+local World = load("core/world", R)
+local Scene = load("core/scene", R)
+local Course = load("core/course", R, Scene)
 local settings = load("core/settings")
 local Hud = load("ui/hud", gfx)
 R.setSink(gfx)
@@ -56,9 +58,9 @@ local MAPS = {
 }
 
 local q = Quad.new()
-local Race = load("core/race", Kit)
+local Race = load("core/race", Course)
 for _, id in ipairs({ "pillars", "bando", "gates" }) do
-  local Map = load("maps/" .. id, Kit, R)
+  local Map = load("maps/" .. id, World, Scene, Course)
   local race = Map.gates and Race.new(Map)
   for _, p in ipairs(MAPS[id]) do
     q:reset(p[2], p[3], p[4], p[5])

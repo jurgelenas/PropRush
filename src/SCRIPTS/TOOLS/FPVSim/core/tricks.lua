@@ -1,7 +1,7 @@
 -- Freestyle scoring: tricks read from the quad's flight, chained into combos. Each trick scores at once, times the
 -- combo multiplier, which grows with every trick within COMBO_TIME of the last; a prop strike or a crash resets it.
 
-local Kit = ...
+local Course = ...
 
 local format, floor, abs = string.format, math.floor, math.abs
 
@@ -46,14 +46,14 @@ local COMBO_TIME = 3
 local MULT_MAX = 5
 local NOTE_TIME = 1.5
 
-local through = Kit.through
+local through = Course.through
 
 local TIMES = { "", "DOUBLE ", "TRIPLE " }
 
 local Tricks = {}
 Tricks.__index = Tricks
 
--- map: its gaps (Kit.gap) and near(x, y, z, dist), both optional
+-- map: its gaps (Course.gap) and near(x, y, z, dist), both optional
 function Tricks.new(map)
   local t = setmetatable({ gaps = map and map.gaps, near = map and map.near }, Tricks)
   t:reset()
