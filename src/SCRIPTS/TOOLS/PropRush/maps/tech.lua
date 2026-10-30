@@ -17,7 +17,8 @@ local start = Course.addGate(scene, 0, 22, 3, 2.4, 0.5, true)
 local ladder = Course.addFrame(scene, 0, 45, 3, 2, 0.5, true, 1, 3)
 -- Dived into heading north and left through the south face, heading back
 local cube = Course.addCube(scene, 8, 70, 4, 2)
--- Openings side by side along z, south first: woven from the north one, east, west, east
+-- Openings side by side along z, south first: each flown east from the north one, a corkscrew or power loop back
+-- round between them
 local triple = Course.addFrame(scene, 30, 50, 3, 2.4, 0.5, false, 3, 1)
 Map.gates = {
   start,
@@ -30,8 +31,9 @@ Map.gates = {
   Course.dir(cube.top, -1),
   cube.s,
   triple[3],
-  triple[2],
-  triple[1],
+  -- Beside the one before, so not worked out as the way back from it
+  Course.dir(triple[2], 1),
+  Course.dir(triple[1], 1),
   Course.addFlag(scene, 55, 28, 1, 0),
   -- High, flown west, then a turn north into the start
   Course.addGate(scene, 22, 4, 3, 2.4, 3, false),

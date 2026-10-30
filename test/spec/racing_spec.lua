@@ -113,6 +113,13 @@ describe("racing", function()
       assert.matches("^2/6 ", r.goal, state())
       assert.equal("WRONG WAY", r.note, state())
     end)
+    it("warns through the gate after the next flown backwards", function()
+      at(p.px, p.py, p.pz, 41)
+      assert.is_nil(r.note, state())
+      pass(3, 0, true)
+      assert.matches("^2/6 ", r.goal, state())
+      assert.equal("WRONG WAY", r.note, state())
+    end)
     it("ignores gates out of order", function()
       pass(4)
       assert.matches("^2/6 ", r.goal, state())
@@ -165,6 +172,28 @@ describe("racing", function()
     it("shows its best lap after a crash", function()
       r:finish()
       assert.equal("NEW BEST 0.60S", r.note, state())
+    end)
+  end)
+
+  describe("TECH", function()
+    local Tech = assert(loadfile(SRC .. "maps/tech.lua"))(Ground, Scene, Gap, R, function(name, ...)
+      return assert(loadfile(SRC .. name .. ".lua"))(...)
+    end)
+    it("warns going up the east side of the ladder before its first rung", function()
+      local t = Racing.new(Tech, nil, highscore, "tech")
+      t.next = 2
+      -- The way round the first rung: its marker x, the rung's z
+      local x, z = Tech.gates[3][9], Tech.gates[2][11]
+      t:update(0.05, { px = x, py = 2, pz = z + 1 }, x, 2, z - 1)
+      assert.equal(2, t.next)
+      assert.equal("WRONG WAY", t.note)
+    end)
+    it("has the triple gate flown east three times", function()
+      for i = 9, 11 do
+        -- axis, dir
+        assert.equal(1, Tech.gates[i][1])
+        assert.equal(1, Tech.gates[i][15])
+      end
     end)
   end)
 
