@@ -1,6 +1,6 @@
 -- Freefall: a climb north and right to a 9 m gate, a split-S down through the top of a cube and back out the face
--- it was approached from into a low gate, a right sweep round a flag over the top, then a smaller climb and drop
--- south and a right turn round a flag into the start.
+-- it was approached from into a low gate, a right turn round a flag over the top into switchbacks, a ladder flown
+-- top rung first, a chicane south and a right turn round a flag into the start.
 
 local Ground, Scene, Gap, R, load = ...
 local Course = load("world/course", R, Scene, Gap)
@@ -32,20 +32,32 @@ local cube = Course.addCube(scene, 34, 66, 4, 2.5)
 gates[#gates + 1] = cube.top
 gates[#gates + 1] = cube.w
 gate(8, 72, 0.5, false)
--- Right round the flag on its west, east over the top and right round the next on its north
+-- Right round the flag on its west, east over the top, then switchbacks: right round a flag, back west through a
+-- gate, left round a flag and east again
 flag(-6, 92, -1, 0)
 gate(20, 104, 0.5, false)
-flag(44, 100, 0, 1)
--- 5 m up, then 4.5 m lower 20 m on, and right round the flag into the start
-gate(60, 70, 5, true)
-gate(56, 50, 0.5, true)
-gate(50, 10, 1, true)
+flag(42, 104, 0, 1)
+gate(28, 92, 2, false)
+flag(12, 86, 0, 1)
+gate(32, 80, 0.5, false)
+-- Ladder flown south top rung first, round its east side between rungs
+local ladder = Course.addFrame(scene, 52, 68, W, H, 0.5, true, 1, 3)
+gates[#gates + 1] = ladder[3]
+gates[#gates + 1] = Course.around(ladder[3], 1)
+gates[#gates + 1] = ladder[2]
+gates[#gates + 1] = Course.around(ladder[2], 1)
+gates[#gates + 1] = ladder[1]
+-- Chicane 5 m left and right every 16 m, high, low, mid, then west and right round the flag into the start
+gate(55, 52, 4.5, true)
+gate(50, 36, 0.5, true)
+gate(55, 20, 3, true)
+gate(32, 2, 1, false)
 flag(12, -6, 0, -1)
 Map.gates = gates
 
--- Water tower beside the climb, a shed inside the top sweep, a hut west of the start
+-- Water tower beside the climb, a shed west of the chicane, a hut west of the start
 scene.addBox(26, 46, 3, 3, 14)
-scene.addBox(45, 82, 10, 6, 4)
+scene.addBox(36, 36, 6, 10, 4)
 scene.addBox(-8, 40, 5, 7, 3)
 
 local RIDGE = Ground.newRing({ 2, 3.5, 2.5, 1, 1.5, 3, 4, 2, 1, 2.5, 3.5, 1.5, 1, 2, 3, 2.5 })
