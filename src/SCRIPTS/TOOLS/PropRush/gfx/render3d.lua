@@ -211,6 +211,80 @@ function R.poly(wx, wy, wz, n, shade, opaque)
   end
 end
 
+-- Frame joints in camera space, and the bars' midpoint depths and draw order
+local JX, JY, JZ, DEPTH, ORDER = {}, {}, {}, {}, {}
+-- Bars narrower than LINE_PX on screen are a line, narrower than FILL_PX their two sides, else filled and outlined
+local LINE_PX, FILL_PX = 1.5, 3
+local RX, RY = { 0, 0, 0, 0 }, { 0, 0, 0, 0 }
+
+-- One bar between camera-space points, half its thickness wide either side, its ends extended by as much so bars
+-- meeting at a joint close it like box corners do. An end clipped by the near plane is not extended.
+local function bar(ax, ay, az, bx, by, bz, half, edge, fill)
+  local ea, eb = 1, 1
+  if az < NEAR then
+    if bz < NEAR then
+      return
+    end
+    local t = (NEAR - az) / (bz - az)
+    ax, ay, az, ea = ax + (bx - ax) * t, ay + (by - ay) * t, NEAR, 0
+  elseif bz < NEAR then
+    local t = (NEAR - bz) / (az - bz)
+    bx, by, bz, eb = bx + (ax - bx) * t, by + (ay - by) * t, NEAR, 0
+  end
+  local fa, fb = focal / az, focal / bz
+  ax, ay, bx, by = cx + ax * fa, cy - ay * fa, cx + bx * fb, cy - by * fb
+  local ha, hb = half * fa, half * fb
+  if ha < LINE_PX / 2 and hb < LINE_PX / 2 then
+    sink.line(ax, ay, bx, by, edge)
+    return
+  end
+  local dx, dy = bx - ax, by - ay
+  local len = math.sqrt(dx * dx + dy * dy)
+  if len < 0.01 then
+    dx, dy = 1, 0
+  else
+    dx, dy = dx / len, dy / len
+  end
+  ax, ay = ax - dx * ha * ea, ay - dy * ha * ea
+  bx, by = bx + dx * hb * eb, by + dy * hb * eb
+  local nx, ny = -dy, dx
+  local a1x, a1y, a2x, a2y = ax + nx * ha, ay + ny * ha, ax - nx * ha, ay - ny * ha
+  local b1x, b1y, b2x, b2y = bx + nx * hb, by + ny * hb, bx - nx * hb, by - ny * hb
+  if fill and (ha >= FILL_PX / 2 or hb >= FILL_PX / 2) then
+    RX[1], RY[1], RX[2], RY[2], RX[3], RY[3], RX[4], RY[4] = a1x, a1y, b1x, b1y, b2x, b2y, a2x, a2y
+    sink.fill(RX, RY, 4, fill, true)
+    sink.line(a1x, a1y, a2x, a2y, edge)
+    sink.line(b1x, b1y, b2x, b2y, edge)
+  end
+  sink.line(a1x, a1y, b1x, b1y, edge)
+  sink.line(a2x, a2y, b2x, b2y, edge)
+end
+
+-- Frame of square bars 2 * half thick between joints: the joints' world positions as parallel arrays x, y, z, the
+-- bars as a flat list of joint index pairs. Each joint is transformed once; bars are drawn far to near, as lines,
+-- outlines or filled ribbons by their width on screen. fill: shade inside wide bars, nil for outlines only.
+function R.frame(x, y, z, bars, half, edge, fill)
+  for i = 1, #x do
+    JX[i], JY[i], JZ[i] = toCamera(x[i], y[i], z[i])
+  end
+  local n = #bars // 2
+  for i = 1, n do
+    local a, b = bars[2 * i - 1], bars[2 * i]
+    local d = JZ[a] + JZ[b]
+    local j = i - 1
+    while j > 0 and DEPTH[j] < d do
+      DEPTH[j + 1], ORDER[j + 1] = DEPTH[j], ORDER[j]
+      j = j - 1
+    end
+    DEPTH[j + 1], ORDER[j + 1] = d, i
+  end
+  for k = 1, n do
+    local i = ORDER[k]
+    local a, b = bars[2 * i - 1], bars[2 * i]
+    bar(JX[a], JY[a], JZ[a], JX[b], JY[b], JZ[b], half, edge, fill)
+  end
+end
+
 -- Box corners: index = 1 + (x1 ? 1 : 0) + (y1 ? 2 : 0) + (z1 ? 4 : 0)
 local BX, BY, BZ, BSX, BSY = {}, {}, {}, {}, {}
 for i = 1, 8 do
