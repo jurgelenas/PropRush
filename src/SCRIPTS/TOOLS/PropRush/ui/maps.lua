@@ -38,6 +38,7 @@ function Maps.run(event)
 
   gfx.clear()
   List.title(title)
+  gfx.text(W - 2, (List.TOP - gfx.FH) // 2, selected .. "/" .. #entries, "r", nil, true)
   for i = first, math.min(#entries, first + rows - 1) do
     List.row(List.TOP + 1 + (i - first) * ROW_H, ROW_H, split - 2, entries[i].name, i == selected)
   end
