@@ -1,4 +1,4 @@
-local World, Scene = ...
+local Ground, Scene = ...
 
 local Map = {
   spawn = { x = 0, y = 0, z = 0, heading = 0 },
@@ -15,9 +15,9 @@ scene.addBox(-25, 110, 16, 10, 14)
 scene.addBox(30, 120, 10, 18, 22)
 
 function Map.draw(quality)
-  World.drawGrid(quality)
-  World.drawRing(World.HILLS, World.horizon(quality))
-  World.drawPad(0, 0)
+  Ground.drawGrid(quality)
+  Ground.drawRing(Ground.HILLS, Ground.horizon(quality))
+  Ground.drawPad(0, 0)
   scene.draw(quality)
 end
 
@@ -31,7 +31,7 @@ Map.near = scene.near
 
 -- Video link: clean within 150 m of the pillar ring, lost at 400 m
 function Map.signalLoss(x, y, z)
-  return World.rangeLoss(x, y, z, 0, 60, 150, 400)
+  return Ground.rangeLoss(x, y, z, 0, 60, 150, 400)
 end
 
 return Map

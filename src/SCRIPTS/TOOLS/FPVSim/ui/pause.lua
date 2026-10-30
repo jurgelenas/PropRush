@@ -15,7 +15,7 @@ local PANEL_W = 66
 
 local KEYS = { camAngle = true, fov = true, quality = true, angleMode = true, batterySim = true, fps = true }
 local items = { { label = "RESUME", action = "resume" } }
-for _, item in ipairs(app.load("core/items")) do
+for _, item in ipairs(app.load("config/items")) do
   if KEYS[item.key] or item.label == "RATES" then
     items[#items + 1] = item
   end

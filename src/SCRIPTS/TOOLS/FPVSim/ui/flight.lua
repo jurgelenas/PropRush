@@ -1,11 +1,11 @@
 local app = ...
 
 local gfx, settings, input, Sound = app.gfx, app.settings, app.input, app.sound
-local R = app.load("core/render3d")
-local Quad = app.load("core/quad", app.rates)
-local World = app.load("core/world", R)
-local Scene = app.load("core/scene", R)
-local Course = app.load("core/course", R, Scene)
+local R = app.load("gfx/render3d")
+local Quad = app.load("physics/quad", app.rates)
+local Ground = app.load("world/ground", R)
+local Scene = app.load("world/scene", R)
+local Course = app.load("world/course", R, Scene)
 local Hud = app.load("ui/hud", gfx)
 
 R.setSink(gfx)
@@ -29,7 +29,7 @@ local LOW_CELL, LOW_CLEAR, LOW_TIME, LOW_EVERY, LOW_MAX = 3.3, 3.4, 1, 8, 3
 
 local quad = Quad.new()
 local Map
--- Freestyle maps: core/tricks, the scoring; racing maps: core/race, the gates and lap clock. Either keeps the
+-- Freestyle maps: modes/freestyle, the scoring; racing maps: modes/racing, the gates and lap clock. Either keeps the
 -- map's best and gives the HUD its goal, note and clock.
 local mode
 -- "flying" (armed or not) or "crashed"
@@ -65,8 +65,8 @@ local Flight = {}
 -- entry: the map's catalogue entry
 function Flight.enter(entry)
   Map = nil
-  Map = app.load("maps/" .. entry.id, World, Scene, Course)
-  mode = app.load(entry.mode == "racing" and "core/race" or "core/tricks", Course).new(Map, Sound, app.save, entry.id)
+  Map = app.load("maps/" .. entry.id, Ground, Scene, Course)
+  mode = app.load("modes/" .. entry.mode, Course).new(Map, Sound, app.save, entry.id)
   R.setView(0, 0, gfx.W, gfx.H, settings.fov, settings.camAngle)
   respawn()
 end

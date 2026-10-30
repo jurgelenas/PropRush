@@ -7,12 +7,12 @@ local function load(name, ...)
   return assert(loadfile("src/SCRIPTS/TOOLS/FPVSim/" .. name .. ".lua"))(...)
 end
 local gfx = load("gfx/bw")
-local R = load("core/render3d")
-local Quad = load("core/quad", load("core/rates"))
-local World = load("core/world", R)
-local Scene = load("core/scene", R)
-local Course = load("core/course", R, Scene)
-local settings = load("core/settings")
+local R = load("gfx/render3d")
+local Quad = load("physics/quad", load("physics/rates"))
+local Ground = load("world/ground", R)
+local Scene = load("world/scene", R)
+local Course = load("world/course", R, Scene)
+local settings = load("config/settings")
 local Hud = load("ui/hud", gfx)
 R.setSink(gfx)
 R.setView(0, 0, LCD_W, LCD_H, settings.fov, settings.camAngle)
@@ -58,10 +58,10 @@ local MAPS = {
 }
 
 local q = Quad.new()
-local Race = load("core/race", Course)
+local Racing = load("modes/racing", Course)
 for _, id in ipairs({ "pillars", "bando", "gates" }) do
-  local Map = load("maps/" .. id, World, Scene, Course)
-  local race = Map.gates and Race.new(Map)
+  local Map = load("maps/" .. id, Ground, Scene, Course)
+  local race = Map.gates and Racing.new(Map)
   for _, p in ipairs(MAPS[id]) do
     q:reset(p[2], p[3], p[4], p[5])
     q.armed = true

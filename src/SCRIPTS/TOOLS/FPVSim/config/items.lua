@@ -1,4 +1,4 @@
--- The editable settings (core/settings), in menu order: a list of choices (with optional display labels) or a
+-- The editable settings (config/settings), in menu order: a list of choices (with optional display labels) or a
 -- min/max/step range (with an optional printf format and scale for display); preview: changing it plays a sample.
 -- Loaded only to read the save file and on the settings screen, so its tables are not held in flight.
 local ON_OFF = { "ON", "OFF" }

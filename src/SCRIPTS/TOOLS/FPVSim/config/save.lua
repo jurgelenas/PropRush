@@ -39,7 +39,7 @@ local function parse(item, s)
   end
 end
 
--- items: core/items
+-- items: config/items
 function Save.load(items)
   local kv = storage.read(PATH)
   if kv then

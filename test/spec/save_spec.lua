@@ -9,11 +9,11 @@ end
 local PATH = "/SCRIPTS/TOOLS/FPVSim/save.txt"
 local BESTS = "/SCRIPTS/TOOLS/FPVSim/bests.txt"
 
-local items = load("core/items")
+local items = load("config/items")
 
 local function fresh()
-  local settings = load("core/settings")
-  local Save = load("core/save", load("platform/storage"), settings)
+  local settings = load("config/settings")
+  local Save = load("config/save", load("platform/storage"), settings)
   Save.load(items)
   return settings, Save
 end

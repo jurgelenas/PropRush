@@ -1,4 +1,4 @@
--- stickRate: core/rates
+-- stickRate: physics/rates
 local stickRate = ...
 
 -- World axes: x east, y up, z north. Body axes r/u/f (right, up, forward) are unit vectors in world space.

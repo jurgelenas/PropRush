@@ -26,7 +26,7 @@ local ROW_H = 12
 -- Settings changed in the pause menu, saved here with flight out of memory
 if app.settingsChanged then
   app.settingsChanged = nil
-  app.save.write(app.load("core/items"))
+  app.save.write(app.load("config/items"))
 end
 
 -- Kept in app: the menu is reloaded each time it is opened

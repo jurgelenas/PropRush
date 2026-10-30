@@ -3,13 +3,13 @@
 local H = dofile("test/harness.lua")
 H.install(128, 64)
 
-local CORE = "src/SCRIPTS/TOOLS/FPVSim/core/"
-local Quad = assert(loadfile(CORE .. "quad.lua"))(assert(loadfile(CORE .. "rates.lua"))())
-local R = assert(loadfile(CORE .. "render3d.lua"))()
-local Scene = assert(loadfile(CORE .. "scene.lua"))(R)
-local Course = assert(loadfile(CORE .. "course.lua"))(R, Scene)
-local Tricks = assert(loadfile(CORE .. "tricks.lua"))(Course)
-local save = assert(loadfile(CORE .. "save.lua"))({
+local SRC = "src/SCRIPTS/TOOLS/FPVSim/"
+local Quad = assert(loadfile(SRC .. "physics/quad.lua"))(assert(loadfile(SRC .. "physics/rates.lua"))())
+local R = assert(loadfile(SRC .. "gfx/render3d.lua"))()
+local Scene = assert(loadfile(SRC .. "world/scene.lua"))(R)
+local Course = assert(loadfile(SRC .. "world/course.lua"))(R, Scene)
+local Freestyle = assert(loadfile(SRC .. "modes/freestyle.lua"))(Course)
+local save = assert(loadfile(SRC .. "config/save.lua"))({
   write = function()
     return true
   end,
@@ -64,7 +64,7 @@ local function start(y, v, x, z)
   q:reset(x or 0, y, z or 0, 0)
   q.armed = true
   q.vz = v or 0
-  t = Tricks.new(map, sound, save, "test")
+  t = Freestyle.new(map, sound, save, "test")
   notes, cues = {}, {}
 end
 
