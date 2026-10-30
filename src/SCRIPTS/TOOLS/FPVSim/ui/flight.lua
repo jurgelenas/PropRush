@@ -10,6 +10,8 @@ local Hud = app.load("ui/hud", gfx)
 
 R.setSink(gfx)
 
+-- EXIT pauses into ui/pause (about 8 KB more heap while paused); false: EXIT leaves flight at once
+local PAUSE_MENU = true
 local MAX_STEP = 0.02
 -- Frames longer than this (menu pauses, load hitches) are not simulated in full
 local MAX_FRAME = 0.1
@@ -36,6 +38,8 @@ local stateTime = 0
 -- Sound state: seconds waiting for the throttle to arm and the next reminder, seconds of low battery and beeps
 -- given, battery dead, out of range warned, the warning blink was on
 local waitTime, nagAt, lowTime, lowBeeps, dead, warned, blinkOn
+-- ui/pause while paused
+local pause
 
 local function respawn()
   -- The run's garbage goes before the next one starts, under the static
@@ -67,15 +71,54 @@ function Flight.enter(entry)
   respawn()
 end
 
-function Flight.run(event, dt)
-  if event == EVT_VIRTUAL_EXIT then
-    if state ~= "crashed" then
-      mode:keep()
+local function leave()
+  if state ~= "crashed" then
+    mode:keep()
+  end
+  app.save.flush()
+  Map, mode, pause = nil, nil, nil
+  Sound.stop()
+  return "menu"
+end
+
+-- Paused: nothing moves and the clocks stop; the view is drawn as it stands under the menu, with the camera as
+-- set there
+local function paused(event)
+  local action = pause.run(event)
+  if action == "quit" then
+    return leave()
+  elseif action then
+    pause = nil
+    if action == "restart" then
+      if state ~= "crashed" then
+        mode:keep()
+      end
+      respawn()
+    else
+      collectgarbage("collect")
     end
-    app.save.flush()
-    Map, mode = nil, nil
+  end
+  R.setView(0, 0, gfx.W, gfx.H, settings.fov, settings.camAngle)
+  gfx.clear()
+  R.setCamera(quad)
+  Map.draw(settings.quality)
+  mode:draw(R, gfx)
+  if pause then
+    pause.draw()
+  end
+end
+
+function Flight.run(event, dt)
+  if event == EVT_VIRTUAL_EXIT and not pause then
+    if not PAUSE_MENU then
+      return leave()
+    end
     Sound.stop()
-    return "menu"
+    pause = app.load("ui/pause", app)
+    event = 0
+  end
+  if pause then
+    return paused(event)
   end
 
   local sticks = input.read()

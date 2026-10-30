@@ -14,6 +14,7 @@ local RAD = math.pi / 180
 local RATE_STEPS = 12
 
 local Sources = app.load("platform/sources", input)
+local Edit = app.load("ui/edit", settings)
 -- The radio's sources for the axes and for arming, each listed when first shown
 local axisList, armList
 local function sourcesOf(item)
@@ -29,46 +30,21 @@ local TOP = { items = app.load("core/items"), title = "SETTINGS" }
 -- Current page: items and title; selection, scroll position and the page it was opened from
 local page, editing
 
-local function indexOf(list, v)
-  for i = 1, #list do
-    if list[i] == v then
-      return i
-    end
-  end
-  return 1
-end
-
 local function valueText(item)
-  local v = settings[item.key]
   if item.page then
     return ">"
   elseif item.source then
-    return Sources.label(sourcesOf(item), v)
-  elseif item.labels then
-    return item.labels[indexOf(item.choices, v)]
-  elseif item.format then
-    return string.format(item.format, v * item.scale)
+    return Sources.label(sourcesOf(item), settings[item.key])
   end
-  return tostring(v)
+  return Edit.text(item)
 end
 
--- Choices wrap around; ranges stop at their ends
 local function change(item, d)
-  local v = settings[item.key]
   if item.source then
     local names = sourcesOf(item).names
-    settings[item.key] = names[(indexOf(names, v) - 1 + d) % #names + 1]
-  elseif item.choices then
-    local n = #item.choices
-    settings[item.key] = item.choices[(indexOf(item.choices, v) - 1 + d) % n + 1]
+    settings[item.key] = names[(Edit.indexOf(names, settings[item.key]) - 1 + d) % #names + 1]
   else
-    v = v + d * item.step
-    if v < item.min then
-      v = item.min
-    elseif v > item.max then
-      v = item.max
-    end
-    settings[item.key] = v
+    Edit.change(item, d)
   end
   if item.preview then
     Sound.preview(item.key)
