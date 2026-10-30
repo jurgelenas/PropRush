@@ -52,17 +52,31 @@ describe("Course", function()
     end)
   end)
 
+  describe("way round", function()
+    it("scores going back past the post on its side only", function()
+      local rungs = Course.addFrame(scene, 0, 10, 3, 2, 0.5, true, 1, 3)
+      local r = Course.around(rungs[1], 1)
+      assert.equal(1, r.round)
+      assert.is_true(through(r, 4, 2, 11, 4, 2, 9))
+      assert.is_false(through(r, -4, 2, 11, -4, 2, 9))
+      assert.is_false(through(r, 0, 1.5, 11, 0, 1.5, 9))
+      assert.equal(2.5, r.top)
+    end)
+  end)
+
   describe("triple gate", function()
-    it("is one opening across three, with posts between", function()
+    it("has an opening each, side by side, with posts between", function()
       local gaps = Course.addFrame(scene, 0, 10, 3, 2.4, 0.5, false, 3, 1)
-      assert.equal(1, #gaps)
-      local g = gaps[1]
-      for _, z in ipairs({ 6.7, 10, 13.3 }) do
-        assert.is_true(through(g, -1, 1.5, z, 1, 1.5, z))
+      assert.equal(3, #gaps)
+      local zs = { 6.7, 10, 13.3 }
+      for i, z in ipairs(zs) do
+        assert.is_true(through(gaps[i], -1, 1.5, z, 1, 1.5, z))
+        assert.is_false(through(gaps[i % 3 + 1], -1, 1.5, z, 1, 1.5, z))
         assert.is_falsy(scene.collides(0, 1.5, z))
       end
+      assert.equal(gaps[1].piece, gaps[3].piece)
       assert.is_truthy(scene.collides(0, 1.5, 11.65))
-      assert.is_false(through(g, -1, 1.5, 15.5, 1, 1.5, 15.5))
+      assert.is_false(through(gaps[3], -1, 1.5, 15.5, 1, 1.5, 15.5))
     end)
   end)
 
@@ -73,6 +87,14 @@ describe("Course", function()
       assert.is_true(northwards(c.n, 0, 3.5, 11.6))
       assert.is_true(through(c.e, 1, 3.5, 10, 2, 3.5, 10))
       assert.is_false(through(c.top, 2, 6, 10, 2, 4, 10))
+    end)
+
+    it("links its openings for racing's preview, side markers mid-face", function()
+      local c = Course.addCube(scene, 0, 10, 3, 2)
+      assert.is_truthy(c.top.piece)
+      assert.equal(c.top.piece, c.n.piece)
+      assert.equal(3.5, c.n.top)
+      assert.is_nil(Course.addGate(scene, 0, 20, 3, 2.4, 1, true).piece)
     end)
 
     it("stands on legs and is hollow", function()

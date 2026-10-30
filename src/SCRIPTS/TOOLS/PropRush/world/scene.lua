@@ -99,6 +99,8 @@ local function touches(b, x, y, z)
     and boxDistance2(b, x, y, z) < RADIUS * RADIUS
 end
 
+Scene.touches, Scene.distance2 = touches, boxDistance2
+
 local function sortByDistance(list)
   for i = 2, #list do
     local b = list[i]
