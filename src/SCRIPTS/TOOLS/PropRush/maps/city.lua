@@ -1,6 +1,6 @@
--- City: a downtown of six blocks either side of an avenue running north, with a stepped tower, an arch block,
--- twin towers joined by a skybridge over the avenue, a slot between two towers and a spire on a podium, ringed
--- by low blocks and a skyline.
+-- City: a downtown either side of an avenue running north, with an arch block, twin towers joined by a skybridge
+-- over the avenue, a slot between two towers and a spire, against a skyline. Few buildings: tall ones fill most of
+-- the screen, and every one costs frame rate.
 
 local Ground, Scene, Gap, R, load = ...
 
@@ -10,20 +10,16 @@ local Map = {
 
 -- Blocks PITCH metres square; the ground grid has the same spacing, so its lines run down the roads
 local PITCH = 50
--- Street grid: 4 x 5 blocks from its south-west corner, the downtown the middle 2 x 3
-local SX, SZ, COLS, ROWS = -100, -50, 4, 5
+-- Street grid: 2 x 4 blocks from its south-west corner, the downtown on the north 2 x 3 and the spawn on the avenue
+-- between the empty south ones
+local SX, SZ, COLS, ROWS = -50, -50, 2, 4
 local Streets = load("world/streets", R)
+
 local scene = Scene.new()
 Map.scene = scene
 -- Openings that score in freestyle
 local gaps = {}
 Map.gaps = gaps
-
--- Stepped tower, setbacks at 18 and 36 m
-local stepped = scene.addStructure()
-stepped:add(-25, 25, 30, 30, 18, 0)
-stepped:add(-25, 25, 22, 22, 18, 18)
-stepped:add(-25, 25, 12, 12, 16, 36)
 
 -- Arch block: a 10 m wide passage, 9 m high, through its ground floor from south to north
 local arch = scene.addStructure()
@@ -43,21 +39,8 @@ scene.addBox(-33.5, 125, 13, 26, 44)
 scene.addBox(-16.5, 125, 13, 26, 38)
 gaps[#gaps + 1] = Gap.new("SLOT", 15, -27, 0, 125, -23, 38, 125)
 
--- Spire on a podium, the tallest in town
-local spire = scene.addStructure()
-spire:add(25, 125, 34, 34, 8, 0)
-spire:add(25, 125, 14, 14, 82, 8)
-
--- Low blocks round the downtown: {x, z, width, depth, height}
--- stylua: ignore
-local LOW = {
-  -75, 25, 30, 30, 14,   -75, 75, 26, 34, 20,   -75, 125, 34, 24, 10,
-  75, 25, 34, 26, 16,    75, 75, 30, 30, 9,     75, 125, 26, 34, 24,
-  -25, -25, 30, 16, 6,   -25, 175, 30, 30, 18,  25, 175, 34, 20, 12,
-}
-for i = 1, #LOW, 5 do
-  scene.addBox(LOW[i], LOW[i + 1], LOW[i + 2], LOW[i + 3], LOW[i + 4])
-end
+-- Spire, the tallest in town
+scene.addBox(25, 125, 10, 10, 80)
 
 -- Skyline: towers as {azimuth where it starts, height in degrees} around the compass, each a flat top between
 -- two vertical steps

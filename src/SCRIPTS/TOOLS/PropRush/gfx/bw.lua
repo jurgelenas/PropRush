@@ -23,6 +23,29 @@ if GREY then
   greyFlags = { FORCE + GREY(12), FORCE + GREY(8), FORCE + GREY(4) }
 end
 
+-- Per BAND pixels wide column band, the top row drawn in so far this frame (H: none yet). The rows above it are
+-- blank, so white fills skip them: towers mostly erase empty sky. Reset by Gfx.clear.
+local BAND = 8
+local TOP = {}
+for b = 1, (W + BAND - 1) // BAND do
+  TOP[b] = H
+end
+
+-- Something drawn from row y down across x columns xl..xr
+local function mark(xl, xr, y)
+  if xl < 0 then
+    xl = 0
+  end
+  if xr > XMAX then
+    xr = XMAX
+  end
+  for b = xl // BAND + 1, xr // BAND + 1 do
+    if y < TOP[b] then
+      TOP[b] = y
+    end
+  end
+end
+
 local function span(xl, xr, y, shade)
   if shade >= 4 then
     drawLine(xl, y, xr, y, SOLID, FORCE)
@@ -103,13 +126,19 @@ end
 function Gfx.fill(xs, ys, n, shade, opaque)
   local top, bot = 1, 1
   local ytop, ybot = ys[1], ys[1]
+  local xmin, xmax = xs[1], xs[1]
   for i = 2, n do
-    local y = ys[i]
+    local y, x = ys[i], xs[i]
     if y < ytop then
       top, ytop = i, y
     end
     if y > ybot then
       bot, ybot = i, y
+    end
+    if x < xmin then
+      xmin = x
+    elseif x > xmax then
+      xmax = x
     end
   end
   local r0 = (ytop + 0.5) // 1
@@ -123,10 +152,29 @@ function Gfx.fill(xs, ys, n, shade, opaque)
   if r0 > r1 then
     return
   end
+  if xmin < 0 then
+    xmin = 0
+  end
+  if xmax > XMAX then
+    xmax = XMAX
+  end
   if shade == 0 and opaque == true then
-    eraseFill(xs, ys, n, top, bot, r0, r1)
+    -- From the block holding the topmost drawn row under it on: the blocks above only erase blank rows
+    local t = H
+    for b = xmin // BAND + 1, xmax // BAND + 1 do
+      if TOP[b] < t then
+        t = TOP[b]
+      end
+    end
+    if t > r0 then
+      r0 = r0 + (t - r0) // ERASE_BLOCK * ERASE_BLOCK
+    end
+    if r0 <= r1 then
+      eraseFill(xs, ys, n, top, bot, r0, r1)
+    end
     return
   end
+  mark(xmin, xmax, r0)
 
   local yc = r0 + 0.5
   local ia, ja = top, top % n + 1
@@ -209,6 +257,11 @@ end
 -- Cohen-Sutherland: drawLine silently drops lines with any endpoint off screen.
 function Gfx.line(x1, y1, x2, y2, shade)
   if x1 >= 0 and x1 <= XMAX and x2 >= 0 and x2 <= XMAX and y1 >= 0 and y1 <= YMAX and y2 >= 0 and y2 <= YMAX then
+    if x1 < x2 then
+      mark(x1, x2, y1 < y2 and y1 or y2)
+    else
+      mark(x2, x1, y1 < y2 and y1 or y2)
+    end
     drawLine(
       (x1 + 0.5) // 1,
       (y1 + 0.5) // 1,
@@ -242,6 +295,11 @@ function Gfx.line(x1, y1, x2, y2, shade)
       x2, y2 = x, y
       c2 = outcode(x2, y2)
     end
+  end
+  if x1 < x2 then
+    mark(x1, x2, y1 < y2 and y1 or y2)
+  else
+    mark(x2, x1, y1 < y2 and y1 or y2)
   end
   drawLine(
     (x1 + 0.5) // 1,
@@ -302,6 +360,9 @@ end
 
 function Gfx.clear()
   lcd.clear()
+  for b = 1, #TOP do
+    TOP[b] = H
+  end
 end
 
 function Gfx.rect(x, y, w, h, shade)
