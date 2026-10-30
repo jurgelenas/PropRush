@@ -26,7 +26,7 @@ local function sourcesOf(item)
   return axisList
 end
 
-local TOP = { items = app.load("core/items"), title = "SETTINGS" }
+local TOP = { items = app.load("config/items"), title = "SETTINGS" }
 -- Current page: items and title; selection, scroll position and the page it was opened from
 local page, editing
 

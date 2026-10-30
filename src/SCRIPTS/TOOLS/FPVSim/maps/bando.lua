@@ -1,7 +1,7 @@
 -- Bando: an abandoned mill. A two-storey concrete frame with half its roof fallen in, a chimney to dive, a
 -- ruined facade with window gaps and a pipe bridge to fly under, against an industrial skyline.
 
-local World, Scene, Course = ...
+local Ground, Scene, Course = ...
 
 local Map = {
   spawn = { x = 0, y = 0, z = 0, heading = 0 },
@@ -81,12 +81,12 @@ for i = 1, #BLOCKS, 2 do
   azimuths[n + 1], elevations[n + 1] = BLOCKS[i], BLOCKS[i + 1]
   azimuths[n + 2], elevations[n + 2] = BLOCKS[i + 2] or 359.9, BLOCKS[i + 1]
 end
-local SKYLINE = World.newRing(elevations, azimuths)
+local SKYLINE = Ground.newRing(elevations, azimuths)
 
 function Map.draw(quality)
-  World.drawGrid(quality, GRID)
-  World.drawRing(SKYLINE, World.horizon(quality))
-  World.drawPad(0, 0)
+  Ground.drawGrid(quality, GRID)
+  Ground.drawRing(SKYLINE, Ground.horizon(quality))
+  Ground.drawPad(0, 0)
   scene.draw(quality)
 end
 
@@ -100,7 +100,7 @@ Map.near = scene.near
 
 -- Video link: clean within 150 m of the mill, lost at 400 m
 function Map.signalLoss(x, y, z)
-  return World.rangeLoss(x, y, z, MX, MZ, 150, 400)
+  return Ground.rangeLoss(x, y, z, MX, MZ, 150, 400)
 end
 
 return Map

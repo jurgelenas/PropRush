@@ -9,18 +9,18 @@ local through = Course.through
 -- Seconds a lap time stays on the note line
 local LAP_SHOW = 2
 
-local Race = {}
-Race.__index = Race
+local Racing = {}
+Racing.__index = Racing
 
--- map.gates: Course.addGate openings in course order; sound: platform/sound, optional; save: core/save, id: the
+-- map.gates: Course.addGate openings in course order; sound: platform/sound, optional; save: config/save, id: the
 -- map's key there
-function Race.new(map, sound, save, id)
-  local r = setmetatable({ gates = map.gates, sound = sound, save = save, id = id }, Race)
+function Racing.new(map, sound, save, id)
+  local r = setmetatable({ gates = map.gates, sound = sound, save = save, id = id }, Racing)
   r:reset()
   return r
 end
 
-function Race:reset()
+function Racing:reset()
   self.next, self.lap, self.time = 1, 0, 0
   -- Best lap of this run in seconds, the last lap closed, and whether a lap beat the map's best
   self.best, self.last, self.newBest = nil, nil, false
@@ -31,7 +31,7 @@ function Race:reset()
 end
 
 -- Once per frame of flight, after the physics; ox, oy, oz: where the quad was before it
-function Race:update(dt, q, ox, oy, oz)
+function Racing:update(dt, q, ox, oy, oz)
   local gates = self.gates
   local n = #gates
   local px, py, pz = q.px, q.py, q.pz
@@ -95,7 +95,7 @@ end
 -- The next gate's marker, two pixels thick so it reads over the scenery: a chevron over its top, held inside the
 -- HUD bars when it is above or below the view, or an arrow on a white patch at the side it lies to when it is off
 -- to the side or behind
-function Race:draw(R, gfx)
+function Racing:draw(R, gfx)
   local g = self.gates[self.next]
   local W, H, FH = gfx.W, gfx.H, gfx.FH
   local cx, cy = W / 2, H / 2
@@ -134,12 +134,12 @@ function Race:draw(R, gfx)
 end
 
 -- Laps are kept as they close
-function Race:keep() end
+function Racing:keep() end
 
 -- The run ended in a crash: its best lap goes on the note line
-function Race:finish()
+function Racing:finish()
   local best = self.best
   self.note = best and format(self.newBest and "NEW BEST %.2fS" or "BEST LAP %.2fS", best) or "NO LAP"
 end
 
-return Race
+return Racing

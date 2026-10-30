@@ -50,19 +50,19 @@ local through = Course.through
 
 local TIMES = { "", "DOUBLE ", "TRIPLE " }
 
-local Tricks = {}
-Tricks.__index = Tricks
+local Freestyle = {}
+Freestyle.__index = Freestyle
 
 -- map: its gaps (Course.gap) and near(x, y, z, dist), both optional; sound: platform/sound, optional; save:
--- core/save, id: the map's key there
-function Tricks.new(map, sound, save, id)
+-- config/save, id: the map's key there
+function Freestyle.new(map, sound, save, id)
   local t =
-    setmetatable({ gaps = map and map.gaps, near = map and map.near, sound = sound, save = save, id = id }, Tricks)
+    setmetatable({ gaps = map and map.gaps, near = map and map.near, sound = sound, save = save, id = id }, Freestyle)
   t:reset()
   return t
 end
 
-function Tricks:reset()
+function Freestyle:reset()
   self.score = 0
   -- The map's best when the run started, and whether the score has passed it
   self.runBest, self.passedBest = self.save.bests[self.id], false
@@ -82,12 +82,12 @@ function Tricks:reset()
   self.lastGap = nil
 end
 
-function Tricks:show(note)
+function Freestyle:show(note)
   self.note, self.noteTime = note, NOTE_TIME
 end
 
 -- cue: the sound's trick motif, n: its turns
-function Tricks:award(name, points, cue, n)
+function Freestyle:award(name, points, cue, n)
   self.lastGap = nil
   if self.mult < MULT_MAX then
     self.mult = self.mult + 1
@@ -115,7 +115,7 @@ function Tricks:award(name, points, cue, n)
 end
 
 -- A hold trick of t seconds, qualifying at min, ticks every half second from then on
-function Tricks:holdTick(cue, t, dt, min)
+function Freestyle:holdTick(cue, t, dt, min)
   local a = t - min
   if self.sound and a >= 0 and (a * 2) // 1 ~= ((a - dt) * 2) // 1 then
     self.sound.tick(cue, (a * 2) // 1)
@@ -123,7 +123,7 @@ function Tricks:holdTick(cue, t, dt, min)
 end
 
 -- Ends the combo still running
-function Tricks:drop()
+function Freestyle:drop()
   if self.mult > 1 then
     self:show("COMBO LOST")
     if self.sound then
@@ -142,7 +142,7 @@ local function named(n, trick)
 end
 
 -- The turn is over, upright again: flips, rolls, a power loop or a split-S
-function Tricks:endTurn(q)
+function Freestyle:endTurn(q)
   local flips, rolls = turns(self.pitch), turns(self.roll)
   local n = flips + rolls
   local svx, svz = self.svx, self.svz
@@ -172,7 +172,7 @@ function Tricks:endTurn(q)
 end
 
 -- Gaps flown through from ox, oy, oz this frame; upside down they score double
-function Tricks:gapsFlown(q, ox, oy, oz)
+function Freestyle:gapsFlown(q, ox, oy, oz)
   local px, py, pz = q.px, q.py, q.pz
   local gaps = self.gaps
   for i = 1, #gaps do
@@ -189,7 +189,7 @@ function Tricks:gapsFlown(q, ox, oy, oz)
 end
 
 -- Once per frame of flight, after the physics; ox, oy, oz: where the quad was before it
-function Tricks:update(dt, q, ox, oy, oz)
+function Freestyle:update(dt, q, ox, oy, oz)
   local dPitch, dRoll, dYaw = q.turnPitch, q.turnRoll, q.turnYaw
   q.turnPitch, q.turnRoll, q.turnYaw = 0, 0, 0
 
@@ -225,7 +225,7 @@ function Tricks:update(dt, q, ox, oy, oz)
 end
 
 -- Off the ground and no prop strike
-function Tricks:flight(dt, q, dPitch, dRoll, dYaw)
+function Freestyle:flight(dt, q, dPitch, dRoll, dYaw)
   local uy = q.uy
   if uy > UPRIGHT then
     if not self.inverted then
@@ -341,12 +341,12 @@ function Tricks:flight(dt, q, dPitch, dRoll, dYaw)
 end
 
 -- Keeps the run's score if it is the map's best; true when it was
-function Tricks:keep()
+function Freestyle:keep()
   return self.score > 0 and self.save.record(self.id, self.score)
 end
 
 -- The run ended in a crash: the score is kept and shown on the note line
-function Tricks:finish()
+function Freestyle:finish()
   if self:keep() then
     if self.sound then
       self.sound.cue("best")
@@ -357,6 +357,6 @@ function Tricks:finish()
   end
 end
 
-function Tricks:draw() end
+function Freestyle:draw() end
 
-return Tricks
+return Freestyle

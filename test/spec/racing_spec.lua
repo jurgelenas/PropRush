@@ -4,21 +4,21 @@ local H = dofile("test/harness.lua")
 H.install(128, 64)
 
 local SRC = "src/SCRIPTS/TOOLS/FPVSim/"
-local R = assert(loadfile(SRC .. "core/render3d.lua"))()
-local World = assert(loadfile(SRC .. "core/world.lua"))(R)
-local Scene = assert(loadfile(SRC .. "core/scene.lua"))(R)
-local Course = assert(loadfile(SRC .. "core/course.lua"))(R, Scene)
-local Race = assert(loadfile(SRC .. "core/race.lua"))(Course)
-local Quad = assert(loadfile(SRC .. "core/quad.lua"))(assert(loadfile(SRC .. "core/rates.lua"))())
-local Map = assert(loadfile(SRC .. "maps/gates.lua"))(World, Scene, Course)
-local save = assert(loadfile(SRC .. "core/save.lua"))({
+local R = assert(loadfile(SRC .. "gfx/render3d.lua"))()
+local Ground = assert(loadfile(SRC .. "world/ground.lua"))(R)
+local Scene = assert(loadfile(SRC .. "world/scene.lua"))(R)
+local Course = assert(loadfile(SRC .. "world/course.lua"))(R, Scene)
+local Racing = assert(loadfile(SRC .. "modes/racing.lua"))(Course)
+local Quad = assert(loadfile(SRC .. "physics/quad.lua"))(assert(loadfile(SRC .. "physics/rates.lua"))())
+local Map = assert(loadfile(SRC .. "maps/gates.lua"))(Ground, Scene, Course)
+local save = assert(loadfile(SRC .. "config/save.lua"))({
   write = function()
     return true
   end,
 }, {})
 local gates = Map.gates
 
-local r = Race.new(Map, nil, save, "gates")
+local r = Racing.new(Map, nil, save, "gates")
 local p = { px = 0, py = 1.5, pz = 0 }
 
 -- Frames of dt seconds standing still at x, y, z, the first moving there from the last
@@ -63,7 +63,7 @@ local function fly(x, y, z, vx, vz, t)
   q:reset(x, y, z, 0)
   q.armed = true
   q.vx, q.vz = vx, vz
-  r = Race.new(Map, nil, save, "gates")
+  r = Racing.new(Map, nil, save, "gates")
   for _ = 1, t / 0.05 do
     local fx, fy, fz = q.px, q.py, q.pz
     for _ = 1, 5 do

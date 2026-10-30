@@ -8,13 +8,13 @@ local function load(name, ...)
   return assert(loadfile("src/SCRIPTS/TOOLS/FPVSim/" .. name .. ".lua"))(...)
 end
 
-local Quad = load("core/quad", load("core/rates"))
+local Quad = load("physics/quad", load("physics/rates"))
 
 describe("arming", function()
   describe("the arm source", function()
     local settings, Input
     before_each(function()
-      settings = load("core/settings")
+      settings = load("config/settings")
       Input = load("platform/input", settings)
     end)
 

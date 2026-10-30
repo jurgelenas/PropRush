@@ -1,4 +1,4 @@
--- Settings (core/items) shown as row text and changed with NEXT/PREV: shared by the settings screen and the pause
+-- Settings (config/items) shown as row text and changed with NEXT/PREV: shared by the settings screen and the pause
 -- menu. Sources and sub-pages are the settings screen's own.
 
 local settings = ...

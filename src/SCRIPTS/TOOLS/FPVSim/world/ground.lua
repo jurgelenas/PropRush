@@ -5,7 +5,7 @@ local R = ...
 
 local floor = math.floor
 
-local World = {}
+local Ground = {}
 
 -- Ground grid: one spacing everywhere (GRID_STEP unless the map picks its own); solid near the camera, dotted
 -- further out
@@ -17,7 +17,7 @@ local FAR_EXTENT = { 270, 360, 450 }
 local MIN_GAP_PX = 3
 
 -- Distance where the grid ends for a quality level; horizon rings stand there so the grid runs right up to them
-function World.horizon(quality)
+function Ground.horizon(quality)
   return FAR_EXTENT[quality]
 end
 
@@ -59,7 +59,7 @@ local function drawFamily(alongZ, ox, oz, reach, length, step)
 end
 
 -- step: line spacing in metres, GRID_STEP by default
-function World.drawGrid(quality, step)
+function Ground.drawGrid(quality, step)
   step = step or GRID_STEP
   local ox, oy, oz = R.cameraPos()
   local far = FAR_EXTENT[quality]
@@ -92,7 +92,7 @@ end
 
 -- Ridge elevations in degrees, evenly spaced around the compass from north turning east, or at the given
 -- azimuths in degrees (ascending, below 360): two points at one azimuth draw a vertical step, as in a skyline.
-function World.newRing(elevations, azimuths)
+function Ground.newRing(elevations, azimuths)
   local n = #elevations
   local ring = { n = n, sin = {}, cos = {}, tan = {} }
   for i = 1, n do
@@ -102,7 +102,8 @@ function World.newRing(elevations, azimuths)
   return ring
 end
 
-World.HILLS = World.newRing({ 1.5, 3, 2, 4.5, 3.5, 1, 2.5, 5, 3, 2, 1, 3.5, 6, 4, 2, 1.5, 3, 2, 4, 2.5, 1, 3, 4.5, 2 })
+Ground.HILLS =
+  Ground.newRing({ 1.5, 3, 2, 4.5, 3.5, 1, 2.5, 5, 3, 2, 1, 3.5, 6, 4, 2, 1.5, 3, 2, 4, 2.5, 1, 3, 4.5, 2 })
 
 -- Closed loop of ring points at distance dist from the camera, at their elevations (tans) or on the ground
 local function drawLoop(loop, tans, dist, ox, oz, fx, fz, cull)
@@ -123,7 +124,7 @@ local function drawLoop(loop, tans, dist, ox, oz, fx, fz, cull)
   end
 end
 
-function World.drawRing(ring, dist)
+function Ground.drawRing(ring, dist)
   local ox, _, oz = R.cameraPos()
   local fx, _, fz = R.forward()
   local len = math.sqrt(fx * fx + fz * fz)
@@ -140,7 +141,7 @@ end
 -- Launch pad on the ground: a square with a cross, centred on x, z
 local PAD = 1.5
 
-function World.drawPad(x, z)
+function Ground.drawPad(x, z)
   local x0, z0, x1, z1 = x - PAD, z - PAD, x + PAD, z + PAD
   R.line(x0, 0, z0, x1, 0, z0, 4)
   R.line(x1, 0, z0, x1, 0, z1, 4)
@@ -151,7 +152,7 @@ function World.drawPad(x, z)
 end
 
 -- Video signal loss at a point: 0 clean within fade metres (3D) of the centre (cx, 0, cz), 1 lost at lost
-function World.rangeLoss(x, y, z, cx, cz, fade, lost)
+function Ground.rangeLoss(x, y, z, cx, cz, fade, lost)
   local dx, dz = x - cx, z - cz
   local d = math.sqrt(dx * dx + y * y + dz * dz)
   if d <= fade then
@@ -162,4 +163,4 @@ function World.rangeLoss(x, y, z, cx, cz, fade, lost)
   return (d - fade) / (lost - fade)
 end
 
-return World
+return Ground

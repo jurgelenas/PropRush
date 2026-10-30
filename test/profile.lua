@@ -8,14 +8,14 @@ local function load(name, ...)
   return assert(loadfile("src/SCRIPTS/TOOLS/FPVSim/" .. name .. ".lua"))(...)
 end
 local gfx = load("gfx/bw")
-local R = load("core/render3d")
-local Quad = load("core/quad", load("core/rates"))
-local World = load("core/world", R)
-local Scene = load("core/scene", R)
-local Course = load("core/course", R, Scene)
+local R = load("gfx/render3d")
+local Quad = load("physics/quad", load("physics/rates"))
+local Ground = load("world/ground", R)
+local Scene = load("world/scene", R)
+local Course = load("world/course", R, Scene)
 local function drawGround(qual)
-  World.drawGrid(qual)
-  World.drawRing(World.HILLS, World.horizon(qual))
+  Ground.drawGrid(qual)
+  Ground.drawRing(Ground.HILLS, Ground.horizon(qual))
 end
 R.setSink(gfx)
 
@@ -52,9 +52,9 @@ local POSES = {
   { "20m", 0, 20, 0, 0, 0.5 },
 }
 local sticks = { ail = 0, ele = 0, thr = 0, rud = 0 }
-local settings = load("core/settings")
+local settings = load("config/settings")
 for _, id in ipairs({ "pillars", "bando", "gates" }) do
-  Map = load("maps/" .. id, World, Scene, Course)
+  Map = load("maps/" .. id, Ground, Scene, Course)
   drawBoxes = Map.scene.draw
   print("PROF map " .. id)
   for _, p in ipairs(POSES) do

@@ -3,10 +3,10 @@
 local H = dofile("test/harness.lua")
 H.install(128, 64)
 
-local CORE = "src/SCRIPTS/TOOLS/FPVSim/core/"
-local R = assert(loadfile(CORE .. "render3d.lua"))()
-local Scene = assert(loadfile(CORE .. "scene.lua"))(R)
-local Quad = assert(loadfile(CORE .. "quad.lua"))(assert(loadfile(CORE .. "rates.lua"))())
+local SRC = "src/SCRIPTS/TOOLS/FPVSim/"
+local R = assert(loadfile(SRC .. "gfx/render3d.lua"))()
+local Scene = assert(loadfile(SRC .. "world/scene.lua"))(R)
+local Quad = assert(loadfile(SRC .. "physics/quad.lua"))(assert(loadfile(SRC .. "physics/rates.lua"))())
 
 local scene = Scene.new()
 -- A 10 m cube north of the origin, a thin wall east of it and a 10 cm post west of it

@@ -11,7 +11,7 @@ end
 describe("input", function()
   local settings, Input
   before_each(function()
-    settings = load("core/settings")
+    settings = load("config/settings")
     Input = load("platform/input", settings)
     H.sticks = { ail = 512, ele = -1024, thr = -1024, rud = 2000, ch1 = 1024, ch3 = -512 }
   end)
