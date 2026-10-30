@@ -64,6 +64,7 @@ for _, id in ipairs({ "pillars", "bando", "gates" }) do
   local race = Map.gates and Race.new(Map)
   for _, p in ipairs(MAPS[id]) do
     q:reset(p[2], p[3], p[4], p[5])
+    q.armed = true
     q:rotate(p[6], 0, p[7])
     lcd.clear()
     R.setCamera(q)

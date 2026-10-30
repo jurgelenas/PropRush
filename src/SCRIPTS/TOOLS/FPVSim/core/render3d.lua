@@ -217,16 +217,26 @@ for i = 1, 8 do
   BX[i], BY[i], BZ[i], BSX[i], BSY[i] = 0, 0, 0, 0, 0
 end
 
--- Faces with outward-facing vertex order, so an edge shared by two faces runs in opposite directions.
-local FACE_NX, FACE_PX = { 1, 5, 7, 3 }, { 2, 4, 8, 6 }
-local FACE_NZ, FACE_PZ = { 1, 3, 4, 2 }, { 5, 6, 8, 7 }
-local FACE_TOP, FACE_BOTTOM = { 3, 7, 8, 4 }, { 1, 2, 6, 5 }
-
--- Per camera region: silhouette corner loop and the inner edges between visible faces.
+-- Per camera region: silhouette corner loop and the inner edges between visible faces (corner pairs), each packed
+-- into an integer a corner per 4 bits, first in the lowest: a table per list costs ten times the memory.
 -- Key: (sx + 1) + 3 * (sz + 1) + 9 * (sy + 1), with sx/sy/sz in -1..1 (camera before/within/after the box).
 local SILHOUETTE, INNER = {}, {}
+-- The current box's loop, unpacked
+local LOOP = {}
+
+local function pack(list)
+  local code = 0
+  for i = #list, 1, -1 do
+    code = code * 16 + list[i]
+  end
+  return code
+end
 
 local function buildSilhouettes()
+  -- Faces with outward-facing vertex order, so an edge shared by two faces runs in opposite directions.
+  local FACE_NX, FACE_PX = { 1, 5, 7, 3 }, { 2, 4, 8, 6 }
+  local FACE_NZ, FACE_PZ = { 1, 3, 4, 2 }, { 5, 6, 8, 7 }
+  local FACE_TOP, FACE_BOTTOM = { 3, 7, 8, 4 }, { 1, 2, 6, 5 }
   for sy = -1, 1 do
     for sz = -1, 1 do
       for sx = -1, 1 do
@@ -275,7 +285,7 @@ local function buildSilhouettes()
           end
         end
         local key = (sx + 1) + 3 * (sz + 1) + 9 * (sy + 1)
-        SILHOUETTE[key], INNER[key] = loop, inner
+        SILHOUETTE[key], INNER[key] = pack(loop), pack(inner)
       end
     end
   end
@@ -290,10 +300,16 @@ function R.box(x0, y0, z0, x1, y1, z1, shade, edgeShade)
   local sz = oz < z0 and -1 or (oz > z1 and 1 or 0)
   local sy = oy < y0 and -1 or (oy > y1 and 1 or 0)
   local key = (sx + 1) + 3 * (sz + 1) + 9 * (sy + 1)
-  local loop = SILHOUETTE[key]
-  local n = #loop
-  if n == 0 then
+  local code = SILHOUETTE[key]
+  if code == 0 then
     return
+  end
+  -- Corners, 4 bits each (see SILHOUETTE)
+  local loop, n = LOOP, 0
+  while code > 0 do
+    n = n + 1
+    loop[n] = code % 16
+    code = code // 16
   end
 
   local ax, ay, az = toCamera(x0, y0, z0)
@@ -360,8 +376,10 @@ function R.box(x0, y0, z0, x1, y1, z1, shade, edgeShade)
       end
     end
     if ymax - ymin >= EDGES_PX then
-      for i = 1, #inner, 2 do
-        local a, b = inner[i], inner[i + 1]
+      -- Corner pairs, 4 bits a corner (see SILHOUETTE)
+      while inner > 0 do
+        local a, b = inner % 16, inner // 16 % 16
+        inner = inner // 256
         sink.line(BSX[a], BSY[a], BSX[b], BSY[b], edgeShade)
       end
     end
@@ -379,8 +397,10 @@ function R.box(x0, y0, z0, x1, y1, z1, shade, edgeShade)
         R.camLine(BX[a], BY[a], BZ[a], BX[b], BY[b], BZ[b], edgeShade)
       end
     end
-    for i = 1, shade and #inner or 0, 2 do
-      local a, b = inner[i], inner[i + 1]
+    -- Corner pairs, 4 bits a corner (see SILHOUETTE)
+    while shade and inner > 0 do
+      local a, b = inner % 16, inner // 16 % 16
+      inner = inner // 256
       R.camLine(BX[a], BY[a], BZ[a], BX[b], BY[b], BZ[b], edgeShade)
     end
   end

@@ -18,7 +18,8 @@ function Intro.run(event)
   gfx.text(W - 1, 2, version, "r")
   gfx.text(W / 2, 14, "WARNING: your sticks still", "c")
   gfx.text(W / 2, 14 + FH + 1, "drive the model outputs.", "c")
-  gfx.text(W / 2, 14 + 2 * (FH + 1), "Disarm or turn RF off.", "c")
+  gfx.text(W / 2, 14 + 2 * (FH + 1), "An ARM switch arms it too.", "c")
+  gfx.text(W / 2, 14 + 3 * (FH + 1), "Disarm or turn RF off.", "c")
   gfx.text(W / 2, gfx.H - FH - 1, "ENTER continue  EXIT quit", "c", nil, true)
 end
 

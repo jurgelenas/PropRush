@@ -6,7 +6,8 @@ local drawLine, drawText, drawFilledRectangle = lcd.drawLine, lcd.drawText, lcd.
 local W, H = LCD_W, LCD_H
 local XMAX, YMAX = W - 1, H - 1
 
-local Gfx = { W = W, H = H, FH = 6 }
+-- FH, BIG_FH: capital heights of the small and the normal font
+local Gfx = { W = W, H = H, FH = 6, BIG_FH = 7 }
 
 -- drawLine patterns are matched against absolute x % 8, so per-row patterns tile into a dither.
 local DITHER = {

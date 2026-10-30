@@ -15,7 +15,7 @@ local save = assert(loadfile(SRC .. "core/save.lua"))({
   write = function()
     return true
   end,
-}, {}, {})
+}, {})
 local gates = Map.gates
 
 local r = Race.new(Map, nil, save, "gates")
@@ -61,6 +61,7 @@ local sticks = { ail = 0, ele = 0, rud = 0, thr = 1 / 4.5 }
 local function fly(x, y, z, vx, vz, t)
   local q = Quad.new()
   q:reset(x, y, z, 0)
+  q.armed = true
   q.vx, q.vz = vx, vz
   r = Race.new(Map, nil, save, "gates")
   for _ = 1, t / 0.05 do

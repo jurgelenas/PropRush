@@ -30,7 +30,7 @@ end
 
 -- A quad as the motor reads it
 local function quad(throttle)
-  return { throttle = throttle, voltage = 4.2, dead = false, strike = 0 }
+  return { throttle = throttle, voltage = 4.2, armed = true, dead = false, strike = 0 }
 end
 
 -- Runs the motor for s seconds in 40 ms frames; returns the last tone
@@ -202,6 +202,13 @@ describe("sound", function()
       local q = quad(1)
       spin(q, 1)
       q.dead = true
+      local t = spin(q, 2)
+      assert.equal(0, t[3], "the last tone stops the slot")
+    end)
+    it("winds down and stops when disarmed", function()
+      local q = quad(1)
+      spin(q, 1)
+      q.armed = false
       local t = spin(q, 2)
       assert.equal(0, t[3], "the last tone stops the slot")
     end)

@@ -26,18 +26,15 @@ function Storage.read(path)
   return kv
 end
 
--- Writes keys in order, skipping absent values; nil when the file cannot be opened
-function Storage.write(path, keys, values)
+-- Writes the pairs each(put) gives, a line per put(key, value), straight to the file; nil when it cannot be opened
+function Storage.write(path, each)
   local f = io.open(path, "w")
   if not f then
     return nil
   end
-  for i = 1, #keys do
-    local val = values[keys[i]]
-    if val ~= nil then
-      io.write(f, keys[i], "=", tostring(val), "\n")
-    end
-  end
+  each(function(key, val)
+    io.write(f, key, "=", tostring(val), "\n")
+  end)
   io.close(f)
   return true
 end

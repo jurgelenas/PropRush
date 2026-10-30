@@ -1,4 +1,4 @@
--- Save file round trip and damaged-file handling.
+-- Save files round trip and damaged-file handling.
 
 local H = dofile("test/harness.lua")
 H.install(128, 64)
@@ -7,11 +7,14 @@ local function load(name, ...)
   return assert(loadfile("src/SCRIPTS/TOOLS/FPVSim/" .. name .. ".lua"))(...)
 end
 local PATH = "/SCRIPTS/TOOLS/FPVSim/save.txt"
+local BESTS = "/SCRIPTS/TOOLS/FPVSim/bests.txt"
+
+local items = load("core/items")
 
 local function fresh()
-  local settings, items = load("core/settings")
-  local Save = load("core/save", load("platform/storage"), settings, items)
-  Save.load()
+  local settings = load("core/settings")
+  local Save = load("core/save", load("platform/storage"), settings)
+  Save.load(items)
   return settings, Save
 end
 
@@ -38,6 +41,18 @@ describe("save", function()
       assert.is_true(Save.record("gates", 42.5, true))
       assert.is_false(Save.record("gates", 50, true))
     end)
+    it("are written only when flushed, and only when one changed", function()
+      local _, Save = fresh()
+      Save.record("pillars", 1200)
+      assert.is_nil(H.files[BESTS])
+      assert.is_nil(H.files[PATH])
+      Save.flush()
+      assert.equal("pillars=1200\n", H.files[BESTS])
+      H.files[BESTS] = nil
+      Save.record("pillars", 900)
+      Save.flush()
+      assert.is_nil(H.files[BESTS])
+    end)
   end)
 
   it("round trips settings, the control mapping and bests", function()
@@ -46,6 +61,9 @@ describe("save", function()
     settings.rollSrc, settings.thrSrc, settings.thrRev = "ch3", "ch1", true
     Save.record("pillars", 1500)
     Save.record("gates", 42.5, true)
+    Save.write(items)
+    Save.flush()
+    assert.is_nil(string.find(H.files[PATH], "pillars"), "bests stay out of the settings file")
 
     settings, Save = fresh()
     assert.equal(63, settings.camAngle)
@@ -62,7 +80,8 @@ describe("save", function()
     local settings, Save
     before_each(function()
       H.files[PATH] = "camAngle=999\nquality=7\nangleMode=maybe\nrollRcRate=abc\n\0\1junk\nrollRate=12.5\n"
-        .. "yawRcRate=150\nbest.pillars=77\nbest.x=notanumber\nrollSrc=../x\nyawSrc=ch2\n"
+        .. "yawRcRate=150\nrollSrc=../x\nyawSrc=ch2\n"
+      H.files[BESTS] = "pillars=77\nx=notanumber\n\0junk\n"
       settings, Save = fresh()
     end)
 

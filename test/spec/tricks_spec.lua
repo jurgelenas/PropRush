@@ -13,15 +13,15 @@ local save = assert(loadfile(CORE .. "save.lua"))({
   write = function()
     return true
   end,
-}, {}, {})
+}, {})
 
 -- A wall across z = 20 with a 4 x 3 m window at x -2..2, y 2..5, and a long wall along x = 30
 local scene = Scene.new()
 local wall = scene.addStructure()
-wall.add(-6, 20, 8, 0.6, 8, 0)
-wall.add(6, 20, 8, 0.6, 8, 0)
-wall.add(0, 20, 4, 0.6, 2, 0)
-wall.add(0, 20, 4, 0.6, 3, 5)
+wall:add(-6, 20, 8, 0.6, 8, 0)
+wall:add(6, 20, 8, 0.6, 8, 0)
+wall:add(0, 20, 4, 0.6, 2, 0)
+wall:add(0, 20, 4, 0.6, 3, 5)
 scene.addBox(30.5, 50, 1, 100, 10)
 local map = { gaps = { Course.gap("WINDOW", 10, -2, 2, 20, 2, 5, 20) }, near = scene.near }
 
@@ -62,6 +62,7 @@ local sound = {
 local function start(y, v, x, z)
   q = Quad.new()
   q:reset(x or 0, y, z or 0, 0)
+  q.armed = true
   q.vz = v or 0
   t = Tricks.new(map, sound, save, "test")
   notes, cues = {}, {}

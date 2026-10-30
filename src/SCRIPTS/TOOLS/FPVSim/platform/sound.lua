@@ -15,6 +15,7 @@ local CUES = {
   rev = "3 0 0 0 0 420 480 0 1 1",
   throttle = "4 0 0 0 0 1319 60 60 0 3 1319 60 0 0 3",
   armed = "3 0 6 0 0 880 60 20 0 3 1109 60 20 0 3 1319 100 0 0 3",
+  disarmed = "3 0 6 0 0 1109 60 20 0 3 880 100 0 0 3",
   respawn = "3 1 0 0 0 660 60 0 10 2",
   bump = "5 1 0 0 0 520 40 0 -8 2",
   strike = "3 1 0 0 0 1600 30 0 -40 3",
@@ -204,12 +205,12 @@ function Sound.crash(dead)
 end
 
 -- Once per frame of flight, with the frame's dt: pitch follows rpm, which follows the throttle and the battery
--- voltage
+-- voltage; disarmed or with the battery dead the motors wind down
 function Sound.motor(q, dt)
   if settings.sound ~= 2 then
     return
   end
-  local dead = q.dead
+  local dead = q.dead or not q.armed
   local t = q.throttle
   local target = dead and 0 or math.sqrt(t < IDLE and IDLE or t) * q.voltage * VOLT_RPM
   local k = dt * (dead and WIND_DOWN or SPOOL)

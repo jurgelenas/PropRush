@@ -24,12 +24,12 @@ local mill = scene.addStructure()
 for storey = 0, 1 do
   local y0 = storey * (STOREY + SLAB)
   for _, x in ipairs({ -14.6, 0, 14.6 }) do
-    mill.add(MX + x, MZ - 6.6, COL, COL, STOREY, y0)
-    mill.add(MX + x, MZ + 6.6, COL, COL, STOREY, y0)
+    mill:add(MX + x, MZ - 6.6, COL, COL, STOREY, y0)
+    mill:add(MX + x, MZ + 6.6, COL, COL, STOREY, y0)
   end
 end
-mill.add(MX, MZ, 30, 14, SLAB, STOREY)
-mill.add(MX - 7.5, MZ, 15, 14, SLAB, 2 * STOREY + SLAB)
+mill:add(MX, MZ, 30, 14, SLAB, STOREY)
+mill:add(MX - 7.5, MZ, 15, 14, SLAB, 2 * STOREY + SLAB)
 -- Through either storey across its middle, and through the fallen-in half of the roof
 gaps[#gaps + 1] = Course.gap("GROUND FLOOR", 10, MX - 15, 0, MZ, MX + 15, STOREY, MZ)
 gaps[#gaps + 1] = Course.gap("UPPER FLOOR", 10, MX - 15, STOREY + SLAB, MZ, MX + 15, 2 * STOREY + SLAB, MZ)
@@ -45,21 +45,21 @@ local x = WX
 for i = 1, #BAYS, 2 do
   local w, h = BAYS[i], BAYS[i + 1]
   if h > 0 then
-    wall.add(x + w / 2, WZ, w, WALL, h, 0)
+    wall:add(x + w / 2, WZ, w, WALL, h, 0)
   end
   if h < OPENING_TOP then
     gaps[#gaps + 1] = Course.gap(h > 0 and "WINDOW" or "DOORWAY", h > 0 and 10 or 5, x, h, WZ, x + w, OPENING_TOP, WZ)
   end
   x = x + w
 end
-wall.add((WX + x) / 2, WZ, x - WX, WALL, 2.4, OPENING_TOP)
+wall:add((WX + x) / 2, WZ, x - WX, WALL, 2.4, OPENING_TOP)
 
 -- Pipe bridge from beside the mill to a tower block, its deck 6 m up on two posts
 local BRIDGE_Y, BRIDGE_Z = 6, MZ
 local bridge = scene.addStructure()
-bridge.add(32.25, BRIDGE_Z, 24.5, 2.5, 0.8, BRIDGE_Y)
-bridge.add(25, BRIDGE_Z, 1, 1, BRIDGE_Y, 0)
-bridge.add(39, BRIDGE_Z, 1, 1, BRIDGE_Y, 0)
+bridge:add(32.25, BRIDGE_Z, 24.5, 2.5, 0.8, BRIDGE_Y)
+bridge:add(25, BRIDGE_Z, 1, 1, BRIDGE_Y, 0)
+bridge:add(39, BRIDGE_Z, 1, 1, BRIDGE_Y, 0)
 gaps[#gaps + 1] = Course.gap("UNDER BRIDGE", 5, 25.5, 0, BRIDGE_Z, 38.5, BRIDGE_Y, BRIDGE_Z)
 scene.addBox(50, MZ, 10, 10, 16)
 

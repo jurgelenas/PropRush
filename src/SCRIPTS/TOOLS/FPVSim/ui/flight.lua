@@ -17,10 +17,9 @@ local MAX_FRAME = 0.1
 local CRASH_SHOW = 2
 -- Crash static: full snow for CRASH_HOLD seconds, then fading out until the respawn
 local CRASH_HOLD = 0.2
-local ARM_THROTTLE = 0.05
 -- Signal loss at which the warning starts blinking
 local OUT_OF_RANGE = 0.1
--- Throttle-down reminder: first after NAG_FIRST seconds of arming, then every NAG_EVERY
+-- Throttle-down reminder: first after NAG_FIRST seconds of waiting to arm, then every NAG_EVERY
 local NAG_FIRST, NAG_EVERY = 0.8, 1.5
 -- Low battery beeps: cell voltage under LOW_CELL for LOW_TIME seconds, then every LOW_EVERY, LOW_MAX times; over
 -- LOW_CLEAR it starts over
@@ -31,17 +30,19 @@ local Map
 -- Freestyle maps: core/tricks, the scoring; racing maps: core/race, the gates and lap clock. Either keeps the
 -- map's best and gives the HUD its goal, note and clock.
 local mode
--- "arming": waiting for throttle low; "flying"; "crashed"
+-- "flying" (armed or not) or "crashed"
 local state
 local stateTime = 0
--- Sound state: next throttle reminder, seconds of low battery and beeps given, battery dead, out of range warned,
--- the warning blink was on
-local nagAt, lowTime, lowBeeps, dead, warned, blinkOn
+-- Sound state: seconds waiting for the throttle to arm and the next reminder, seconds of low battery and beeps
+-- given, battery dead, out of range warned, the warning blink was on
+local waitTime, nagAt, lowTime, lowBeeps, dead, warned, blinkOn
 
 local function respawn()
+  -- The run's garbage goes before the next one starts, under the static
+  collectgarbage("collect")
   local s = Map.spawn
   quad:reset(s.x, s.y, s.z, s.heading)
-  state, stateTime, nagAt = "arming", 0, NAG_FIRST
+  state, stateTime, waitTime, nagAt = "flying", 0, 0, NAG_FIRST
   lowTime, lowBeeps, dead, warned = 0, 0, false, false
   Sound.cue("respawn")
   mode:reset()
@@ -52,6 +53,7 @@ local function crash()
   stateTime = 0
   Sound.crash(quad.dead)
   mode:finish()
+  app.save.flush()
 end
 
 local Flight = {}
@@ -70,6 +72,7 @@ function Flight.run(event, dt)
     if state ~= "crashed" then
       mode:keep()
     end
+    app.save.flush()
     Map, mode = nil, nil
     Sound.stop()
     return "menu"
@@ -81,20 +84,25 @@ function Flight.run(event, dt)
   end
 
   local message
-  if state == "arming" then
-    quad.throttle = sticks.thr
-    if sticks.thr < ARM_THROTTLE then
-      state = "flying"
-      Sound.cue("armed")
-    else
+  if state == "flying" then
+    -- Disarmed the quad still flies, motors off: it falls, lands or crashes
+    local arming = quad:arm(input.arm(), sticks.thr)
+    if arming == "throttle" then
       message = "THROTTLE DOWN"
-      stateTime = stateTime + dt
-      if stateTime >= nagAt then
+      waitTime = waitTime + dt
+      if waitTime >= nagAt then
         nagAt = nagAt + NAG_EVERY
         Sound.cue("throttle")
       end
+    else
+      waitTime, nagAt = 0, NAG_FIRST
+      if arming then
+        Sound.cue(arming)
+      end
+      if not quad.armed then
+        message = "ARM TO FLY"
+      end
     end
-  elseif state == "flying" then
     Map.update(dt, quad)
     local frame = dt
     local fx, fy, fz = quad.px, quad.py, quad.pz
