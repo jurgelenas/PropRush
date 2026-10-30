@@ -1,15 +1,37 @@
 -- Racing: the map's gates in order, the first being start and finish. The clock starts through the first gate and
--- each pass through it after all the others closes a lap. Only the next gate is tested, one plane a frame.
+-- each pass through it after all the others closes a lap. Only the next gate is tested, one plane a frame, and
+-- only flown its way through.
 
 local Gap = ...
 
 local format, floor, sqrt = string.format, math.floor, math.sqrt
 local through = Gap.through
 -- Cue numbers (platform/cues)
-local CUE_START, CUE_LAP, CUE_BEST_LAP = 37, 39, 40
+local CUE_DENY, CUE_START, CUE_LAP, CUE_BEST_LAP = 1, 37, 39, 40
 
--- Seconds a lap time stays on the note line
-local LAP_SHOW = 2
+-- Seconds a lap time or WRONG WAY stays on the note line
+local NOTE_SHOW = 2
+
+-- Way through each gate ([15]: 1 towards +x, +y or +z across its plane, -1 back) unless the map set it (Course.dir):
+-- away from the side the gate before's centre lies, or back the way that one went when it is in the same plane
+local function directions(gates)
+  local n = #gates
+  for i = 1, n do
+    local g = gates[i]
+    if not g[15] then
+      local p = gates[(i - 2) % n + 1]
+      -- axis; at, the gate before's centre on that axis
+      local axis = g[1]
+      local d = p[8 + axis] - g[2]
+      if d > 0.5 or d < -0.5 then
+        g[15] = d < 0 and 1 or -1
+      else
+        assert(p[1] == axis and p[15], "gate " .. i .. " needs Course.dir")
+        g[15] = -p[15]
+      end
+    end
+  end
+end
 
 local Racing = {}
 Racing.__index = Racing
@@ -17,6 +39,7 @@ Racing.__index = Racing
 -- map.gates: Course.addGate openings in course order; sound: platform/sound, optional; highscore: config/highscore, id: the
 -- map's key there
 function Racing.new(map, sound, highscore, id)
+  directions(map.gates)
   local r = setmetatable({ gates = map.gates, sound = sound, highscore = highscore, id = id }, Racing)
   r:reset()
   return r
@@ -27,9 +50,24 @@ function Racing:reset()
   -- Best lap of this run in seconds, the last lap closed, and whether a lap beat the map's best
   self.best, self.last, self.newBest = nil, nil, false
   self.show = 0
-  -- HUD: goal the next gate and its distance (top right), clock the lap time (top centre), note a closed lap
+  -- HUD: goal the next gate and its distance (top right), clock the lap time (top centre), note a closed lap or
+  -- WRONG WAY
   self.goal, self.clock, self.note = nil, nil, nil
-  self.goalVal, self.clockVal, self.lapNote = nil, nil, nil
+  self.goalVal, self.clockVal, self.shown = nil, nil, nil
+end
+
+-- True, with WRONG WAY and the deny cue, when the quad came out of gate g's plane on the side it should go in from
+function Racing:wrongWay(g, px, py, pz)
+  -- axis, at, dir
+  local axis = g[1]
+  if ((axis == 1 and px or axis == 2 and py or pz) > g[2]) == (g[15] > 0) then
+    return false
+  end
+  self.shown, self.show = "WRONG WAY", NOTE_SHOW
+  if self.sound then
+    self.sound.cue(CUE_DENY)
+  end
+  return true
 end
 
 -- Once per frame of flight, after the physics; ox, oy, oz: where the quad was before it
@@ -41,7 +79,7 @@ function Racing:update(dt, q, ox, oy, oz)
     self.time = self.time + dt
   end
   local g = gates[self.next]
-  if through(g, ox, oy, oz, px, py, pz) then
+  if through(g, ox, oy, oz, px, py, pz) and not self:wrongWay(g, px, py, pz) then
     if self.next == 1 then
       if self.lap > 0 then
         local t = self.time
@@ -49,8 +87,8 @@ function Racing:update(dt, q, ox, oy, oz)
         if not self.best or t < self.best then
           self.best = t
         end
-        self.lapNote = format("LAP %d %.2fS", self.lap, t)
-        self.show = LAP_SHOW
+        self.shown = format("LAP %d %.2fS", self.lap, t)
+        self.show = NOTE_SHOW
         -- Lap times are kept in hundredths, lowest best
         local newBest = self.highscore.record(self.id, floor(t * 100 + 0.5), true)
         if newBest then
@@ -89,7 +127,7 @@ function Racing:update(dt, q, ox, oy, oz)
   end
   if self.show > 0 then
     self.show = self.show - dt
-    self.note = self.lapNote
+    self.note = self.shown
   else
     self.note = nil
   end

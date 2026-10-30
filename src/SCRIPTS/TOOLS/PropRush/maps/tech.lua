@@ -26,7 +26,8 @@ Map.gates = {
   ladder[2],
   Course.around(ladder[2], 1),
   ladder[3],
-  cube.top,
+  -- Level with the rung before: down
+  Course.dir(cube.top, -1),
   cube.s,
   triple[3],
   triple[2],
