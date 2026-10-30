@@ -12,8 +12,8 @@ local OUTLINE_FACTOR = 3
 -- Distant boxes: light dither with a dotted outline, a fog that fades them in; they are small, so the
 -- second call per row is cheap.
 local BOX_SHADE, BOX_EDGE, FAR_SHADE, FAR_EDGE = 0, 4, 1, 2
--- Edge shades for custom objects drawn to match the boxes
-Scene.EDGE, Scene.FAR_EDGE = BOX_EDGE, FAR_EDGE
+-- Shades for custom objects drawn to match the boxes
+Scene.SHADE, Scene.EDGE, Scene.FAR_SHADE, Scene.FAR_EDGE = BOX_SHADE, BOX_EDGE, FAR_SHADE, FAR_EDGE
 local SORT_EVERY = 4
 -- Upright bars (columns, posts: at least twice as tall as wide) narrower than this on screen are drawn as their
 -- outline instead of a box: the same picture, as the fill between the sides is a pixel at most, so nothing behind

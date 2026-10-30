@@ -2,7 +2,8 @@
 
 local app = ...
 
-local gfx, List, Save = app.gfx, app.list, app.save
+local gfx, Highscore = app.gfx, app.highscore
+local List = app.load("ui/list", gfx)
 
 local ROW_H = 8
 
@@ -43,7 +44,7 @@ function Maps.run(event)
   gfx.line(split, List.TOP + 1, split, H - 1, 4)
   local entry = entries[selected]
   List.lines(split + 3, List.TOP + 3, entry.info)
-  local best = Save.bests[entry.id]
+  local best = Highscore.byMap[entry.id]
   -- Racing bests are lap times in hundredths
   local text = "BEST -"
   if best then

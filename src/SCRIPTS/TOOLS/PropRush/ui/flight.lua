@@ -60,7 +60,7 @@ local function crash()
   stateTime = 0
   Sound.crash(quad.dead)
   mode:finish()
-  app.save.flush()
+  app.highscore.flush()
 end
 
 local Flight = {}
@@ -69,7 +69,7 @@ local Flight = {}
 function Flight.enter(entry)
   Map = nil
   Map = app.load("maps/" .. entry.id, Ground, Scene, Gap, R, app.load)
-  mode = app.load("modes/" .. entry.mode, Gap).new(Map, Sound, app.save, entry.id)
+  mode = app.load("modes/" .. entry.mode, Gap).new(Map, Sound, app.highscore, entry.id)
   R.setView(0, 0, gfx.W, gfx.H, settings.fov, settings.camAngle)
   respawn()
 end
@@ -78,7 +78,7 @@ local function leave()
   if state ~= "crashed" then
     mode:keep()
   end
-  app.save.flush()
+  app.highscore.flush()
   Map, mode, pause = nil, nil, nil
   Sound.stop()
   return "menu"

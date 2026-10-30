@@ -2,5 +2,5 @@
 bin/
 dist/
 TODO.md
-src/SCRIPTS/TOOLS/PropRush/save.txt
-src/SCRIPTS/TOOLS/PropRush/bests.txt
+src/SCRIPTS/TOOLS/PropRush/settings.txt
+src/SCRIPTS/TOOLS/PropRush/highscore.txt

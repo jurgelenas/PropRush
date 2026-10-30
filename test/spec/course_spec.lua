@@ -28,7 +28,7 @@ describe("Course", function()
       assert.is_true(northwards(g, 0, 2.2, 10))
       assert.is_false(northwards(g, 2, 2.2, 10))
       assert.is_false(northwards(g, 0, 0.5, 10))
-      assert.equal(3.4, g.top)
+      assert.equal(3.4, g[12]) -- top
     end)
 
     it("collides on its posts and bars, not in the opening", function()
@@ -57,11 +57,11 @@ describe("Course", function()
     it("scores going back past the post on its side only", function()
       local rungs = Course.addFrame(scene, 0, 10, 3, 2, 0.5, true, 1, 3)
       local r = Course.around(rungs[1], 1)
-      assert.equal(1, r.round)
+      assert.equal(1, r[14]) -- side
       assert.is_true(through(r, 4, 2, 11, 4, 2, 9))
       assert.is_false(through(r, -4, 2, 11, -4, 2, 9))
       assert.is_false(through(r, 0, 1.5, 11, 0, 1.5, 9))
-      assert.equal(2.5, r.top)
+      assert.equal(2.5, r[12]) -- top
     end)
   end)
 
@@ -75,7 +75,7 @@ describe("Course", function()
         assert.is_false(through(gaps[i % 3 + 1], -1, 1.5, z, 1, 1.5, z))
         assert.is_falsy(scene.collides(0, 1.5, z))
       end
-      assert.equal(gaps[1].piece, gaps[3].piece)
+      assert.equal(gaps[1][13], gaps[3][13]) -- piece
       assert.is_truthy(scene.collides(0, 1.5, 11.65))
       assert.is_false(through(gaps[3], -1, 1.5, 15.5, 1, 1.5, 15.5))
     end)
@@ -92,10 +92,10 @@ describe("Course", function()
 
     it("links its openings for racing's preview, side markers mid-face", function()
       local c = Course.addCube(scene, 0, 10, 3, 2)
-      assert.is_truthy(c.top.piece)
-      assert.equal(c.top.piece, c.n.piece)
-      assert.equal(3.5, c.n.top)
-      assert.is_nil(Course.addGate(scene, 0, 20, 3, 2.4, 1, true).piece)
+      assert.is_truthy(c.top[13]) -- piece
+      assert.equal(c.top[13], c.n[13]) -- piece
+      assert.equal(3.5, c.n[12]) -- top
+      assert.is_false(Course.addGate(scene, 0, 20, 3, 2.4, 1, true)[13]) -- piece
     end)
 
     it("stands on legs and is hollow", function()

@@ -6,29 +6,20 @@
 
 local app = ...
 
-local gfx, List, settings = app.gfx, app.list, app.settings
+local gfx, settings = app.gfx, app.settings
+local List = app.load("ui/list", gfx)
 local Edit = app.load("ui/edit", settings)
 
 local ROW_H = 8
 -- The top page's panel width: the view shows to its right
 local PANEL_W = 66
 
-local KEYS = {
-  camAngle = true,
-  fov = true,
-  quality = true,
-  angleMode = true,
-  batterySim = true,
-  fps = true,
-  sound = true,
-  haptic = true,
-}
+-- The display settings, then RATES: its page (config/rates) is loaded on opening it and let go on leaving it
 local items = { { label = "RESUME", action = "resume" } }
-for _, item in ipairs(app.load("config/items")) do
-  if KEYS[item.key] or item.label == "RATES" then
-    items[#items + 1] = item
-  end
+for _, item in ipairs(app.load("config/display")) do
+  items[#items + 1] = item
 end
+items[#items + 1] = { label = "RATES", page = "config/rates" }
 items[#items + 1] = { label = "RESTART", action = "restart" }
 items[#items + 1] = { label = "QUIT", action = "quit" }
 
@@ -63,7 +54,7 @@ function Pause.run(event)
     if item.action then
       return item.action
     elseif item.page then
-      page = { items = item.page, selected = 1, first = 1 }
+      page = { items = app.load(item.page), selected = 1, first = 1 }
     else
       editing = true
     end

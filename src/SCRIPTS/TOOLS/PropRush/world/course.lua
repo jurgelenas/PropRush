@@ -104,10 +104,11 @@ local function newFrame(scene, half, meta)
   return scene.addObject(setmetatable(f, meta or FRAME))
 end
 
--- Opening flown through for racing: g as Gap.new, plus the marker's anchor: centre cx, cy, cz and top. piece:
--- the frame when it has several openings, so racing previews the next when two of it follow each other.
+-- Opening flown through for racing: g as Gap.new, plus the marker's anchor: centre cx, cy, cz ([9..11]) and top
+-- ([12]). piece ([13]): the frame when it has several openings, so racing previews the next when two of it follow
+-- each other, else false. A way round (Course.around) adds [14], its side.
 local function opening(g, cx, cy, cz, top, piece)
-  g.cx, g.cy, g.cz, g.top, g.piece = cx, cy, cz, top, piece
+  g[9], g[10], g[11], g[12], g[13] = cx, cy, cz, top, piece or false
   return g
 end
 
@@ -216,20 +217,24 @@ end
 
 -- Way round frame opening g to the next: crossing the frame's plane beyond its post on the side towards +u (side 1)
 -- or -u (-1), out to FLAG_REACH and up to FLAG_TOP, as between ladder rungs. Its marker stands SIDE_OUT beyond the
--- post at the opening's top, and r.round = side: racing marks it with an arrow pointing back in.
+-- post at the opening's top, and its side in [14]: racing marks it with an arrow pointing back in.
 local SIDE_OUT = 2.5
 function Course.around(g, side)
   -- u0, u1 run along the frame: x for a frame across z (axis 3), else z; v1 is the opening's top
-  local edge = side > 0 and g.u1 + BAR or g.u0 - BAR
+  -- u1, u0
+  local edge = side > 0 and g[4] + BAR or g[3] - BAR
   local far, mark = edge + side * FLAG_REACH, edge + side * SIDE_OUT
   local u0, u1 = math.min(edge, far), math.max(edge, far)
   local r
-  if g.axis == 3 then
-    r = opening(Gap.new("ROUND", 0, u0, 0, g.at, u1, FLAG_TOP, g.at), mark, g.v1, g.at, g.v1)
+  -- axis, at, v1
+  local at, v1 = g[2], g[6]
+  if g[1] == 3 then
+    r = opening(Gap.new("ROUND", 0, u0, 0, at, u1, FLAG_TOP, at), mark, v1, at, v1)
   else
-    r = opening(Gap.new("ROUND", 0, g.at, 0, u0, g.at, FLAG_TOP, u1), g.at, g.v1, mark, g.v1)
+    r = opening(Gap.new("ROUND", 0, at, 0, u0, at, FLAG_TOP, u1), at, v1, mark, v1)
   end
-  r.round = side
+  -- side
+  r[14] = side
   return r
 end
 

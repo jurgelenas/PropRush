@@ -59,11 +59,13 @@ local TIMES = { "", "DOUBLE ", "TRIPLE " }
 local Freestyle = {}
 Freestyle.__index = Freestyle
 
--- map: its gaps (Gap.new) and near(x, y, z, dist), both optional; sound: platform/sound, optional; save:
--- config/save, id: the map's key there
-function Freestyle.new(map, sound, save, id)
-  local t =
-    setmetatable({ gaps = map and map.gaps, near = map and map.near, sound = sound, save = save, id = id }, Freestyle)
+-- map: its gaps (Gap.new) and near(x, y, z, dist), both optional; sound: platform/sound, optional; highscore:
+-- config/highscore, id: the map's key there
+function Freestyle.new(map, sound, highscore, id)
+  local t = setmetatable(
+    { gaps = map and map.gaps, near = map and map.near, sound = sound, highscore = highscore, id = id },
+    Freestyle
+  )
   t:reset()
   return t
 end
@@ -71,7 +73,7 @@ end
 function Freestyle:reset()
   self.score = 0
   -- The map's best when the run started, and whether the score has passed it
-  self.runBest, self.passedBest = self.save.bests[self.id], false
+  self.runBest, self.passedBest = self.highscore.byMap[self.id], false
   -- HUD strings, rebuilt only when they change: goal "PTS n" and note, the latest trick or banked combo
   self.goal = "PTS 0"
   self.note, self.noteTime = nil, 0
@@ -184,10 +186,11 @@ function Freestyle:gapsFlown(q, ox, oy, oz)
   for i = 1, #gaps do
     local g = gaps[i]
     if g ~= self.lastGap and through(g, ox, oy, oz, px, py, pz) then
+      -- name, points
       if q.uy < INVERTED then
-        self:award("INVERTED " .. g.name, 2 * g.points, CUE_GAP_INVERTED)
+        self:award("INVERTED " .. g[7], 2 * g[8], CUE_GAP_INVERTED)
       else
-        self:award(g.name, g.points, CUE_GAP)
+        self:award(g[7], g[8], CUE_GAP)
       end
       self.lastGap = g
     end
@@ -348,7 +351,7 @@ end
 
 -- Keeps the run's score if it is the map's best; true when it was
 function Freestyle:keep()
-  return self.score > 0 and self.save.record(self.id, self.score)
+  return self.score > 0 and self.highscore.record(self.id, self.score)
 end
 
 -- The run ended in a crash: the score is kept and shown on the note line
