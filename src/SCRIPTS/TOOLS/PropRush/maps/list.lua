@@ -25,6 +25,12 @@ return {
     info = { "Old mill,", "chimney and", "ruined wall" },
   },
   {
+    id = "city",
+    name = "CITY",
+    mode = "freestyle",
+    info = { "Downtown", "towers and", "a skybridge" },
+  },
+  {
     id = "pillars",
     name = "PILLARS",
     mode = "freestyle",

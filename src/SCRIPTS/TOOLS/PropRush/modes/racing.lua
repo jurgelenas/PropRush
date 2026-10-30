@@ -1,10 +1,12 @@
 -- Racing: the map's gates in order, the first being start and finish. The clock starts through the first gate and
 -- each pass through it after all the others closes a lap. Only the next gate is tested, one plane a frame.
 
-local Course = ...
+local Gap = ...
 
 local format, floor, sqrt = string.format, math.floor, math.sqrt
-local through = Course.through
+local through = Gap.through
+-- Cue numbers (platform/cues)
+local CUE_START, CUE_LAP, CUE_BEST_LAP = 37, 39, 40
 
 -- Seconds a lap time stays on the note line
 local LAP_SHOW = 2
@@ -55,10 +57,10 @@ function Racing:update(dt, q, ox, oy, oz)
           self.newBest = true
         end
         if self.sound then
-          self.sound.cue(newBest and "bestLap" or "lap")
+          self.sound.cue(newBest and CUE_BEST_LAP or CUE_LAP)
         end
       elseif self.sound then
-        self.sound.cue("start")
+        self.sound.cue(CUE_START)
       end
       self.lap, self.time = self.lap + 1, 0
     elseif self.sound then

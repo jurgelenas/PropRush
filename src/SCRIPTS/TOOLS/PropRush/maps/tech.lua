@@ -1,6 +1,7 @@
 -- Tech: a tight course up a ladder rung by rung, a split-S through a cube, a weave through a triple gate and a pole.
 
-local Ground, Scene, Course = ...
+local Ground, Scene, Gap, R, load = ...
+local Course = load("world/course", R, Scene, Gap)
 
 local Map = {
   spawn = { x = 0, y = 0, z = 0, heading = 0 },

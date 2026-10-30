@@ -7,10 +7,12 @@ local SRC = "src/SCRIPTS/TOOLS/PropRush/"
 local R = assert(loadfile(SRC .. "gfx/render3d.lua"))()
 local Ground = assert(loadfile(SRC .. "world/ground.lua"))(R)
 local Scene = assert(loadfile(SRC .. "world/scene.lua"))(R)
-local Course = assert(loadfile(SRC .. "world/course.lua"))(R, Scene)
-local Racing = assert(loadfile(SRC .. "modes/racing.lua"))(Course)
+local Gap = assert(loadfile(SRC .. "world/gap.lua"))()
+local Racing = assert(loadfile(SRC .. "modes/racing.lua"))(Gap)
 local Quad = assert(loadfile(SRC .. "physics/quad.lua"))(assert(loadfile(SRC .. "physics/rates.lua"))())
-local Map = assert(loadfile(SRC .. "maps/gates.lua"))(Ground, Scene, Course)
+local Map = assert(loadfile(SRC .. "maps/gates.lua"))(Ground, Scene, Gap, R, function(name, ...)
+  return assert(loadfile(SRC .. name .. ".lua"))(...)
+end)
 local save = assert(loadfile(SRC .. "config/save.lua"))({
   write = function()
     return true

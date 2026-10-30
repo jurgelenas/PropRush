@@ -1,7 +1,7 @@
 -- Bando: an abandoned mill. A two-storey concrete frame with half its roof fallen in, a chimney to dive, a
 -- ruined facade with window gaps and a pipe bridge to fly under, against an industrial skyline.
 
-local Ground, Scene, Course = ...
+local Ground, Scene, Gap = ...
 
 local Map = {
   spawn = { x = 0, y = 0, z = 0, heading = 0 },
@@ -31,9 +31,9 @@ end
 mill:add(MX, MZ, 30, 14, SLAB, STOREY)
 mill:add(MX - 7.5, MZ, 15, 14, SLAB, 2 * STOREY + SLAB)
 -- Through either storey across its middle, and through the fallen-in half of the roof
-gaps[#gaps + 1] = Course.gap("GROUND FLOOR", 10, MX - 15, 0, MZ, MX + 15, STOREY, MZ)
-gaps[#gaps + 1] = Course.gap("UPPER FLOOR", 10, MX - 15, STOREY + SLAB, MZ, MX + 15, 2 * STOREY + SLAB, MZ)
-gaps[#gaps + 1] = Course.gap("ROOF HOLE", 5, MX, 2 * STOREY + SLAB, MZ - 7, MX + 15, 2 * STOREY + SLAB, MZ + 7)
+gaps[#gaps + 1] = Gap.new("GROUND FLOOR", 10, MX - 15, 0, MZ, MX + 15, STOREY, MZ)
+gaps[#gaps + 1] = Gap.new("UPPER FLOOR", 10, MX - 15, STOREY + SLAB, MZ, MX + 15, 2 * STOREY + SLAB, MZ)
+gaps[#gaps + 1] = Gap.new("ROOF HOLE", 5, MX, 2 * STOREY + SLAB, MZ - 7, MX + 15, 2 * STOREY + SLAB, MZ + 7)
 
 -- Ruined facade along x at z = WZ: piers, window sills and a doorway as {width, height} from the west end
 -- (height 0 leaves the doorway open), under one band over the openings
@@ -48,7 +48,7 @@ for i = 1, #BAYS, 2 do
     wall:add(x + w / 2, WZ, w, WALL, h, 0)
   end
   if h < OPENING_TOP then
-    gaps[#gaps + 1] = Course.gap(h > 0 and "WINDOW" or "DOORWAY", h > 0 and 10 or 5, x, h, WZ, x + w, OPENING_TOP, WZ)
+    gaps[#gaps + 1] = Gap.new(h > 0 and "WINDOW" or "DOORWAY", h > 0 and 10 or 5, x, h, WZ, x + w, OPENING_TOP, WZ)
   end
   x = x + w
 end
@@ -60,7 +60,7 @@ local bridge = scene.addStructure()
 bridge:add(32.25, BRIDGE_Z, 24.5, 2.5, 0.8, BRIDGE_Y)
 bridge:add(25, BRIDGE_Z, 1, 1, BRIDGE_Y, 0)
 bridge:add(39, BRIDGE_Z, 1, 1, BRIDGE_Y, 0)
-gaps[#gaps + 1] = Course.gap("UNDER BRIDGE", 5, 25.5, 0, BRIDGE_Z, 38.5, BRIDGE_Y, BRIDGE_Z)
+gaps[#gaps + 1] = Gap.new("UNDER BRIDGE", 5, 25.5, 0, BRIDGE_Z, 38.5, BRIDGE_Y, BRIDGE_Z)
 scene.addBox(50, MZ, 10, 10, 16)
 
 scene.addBox(32, 85, 3, 3, 36)
@@ -98,9 +98,9 @@ end
 
 Map.near = scene.near
 
--- Video link: clean within 150 m of the mill, lost at 400 m
+-- Video link: clean within 80 m of the mill (the tower block is 50 m out), lost at 180 m
 function Map.signalLoss(x, y, z)
-  return Ground.rangeLoss(x, y, z, MX, MZ, 150, 400)
+  return Ground.rangeLoss(x, y, z, MX, MZ, 80, 180)
 end
 
 return Map

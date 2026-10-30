@@ -99,6 +99,8 @@ for _, item in ipairs(ITEMS) do
 end
 
 local ROW_H = 8
+-- Cue number (platform/cues)
+local CUE_DENY = 1
 -- Divider x: the list needs FREESTYLE, the rest is for the icon and its caption
 local SPLIT = 52
 
@@ -123,7 +125,7 @@ function Menu.run(event)
     elseif #item.maps > 0 then
       return "maps", item.maps
     end
-    app.sound.cue("deny")
+    app.sound.cue(CUE_DENY)
   end
   app.menuSelected = List.move(app.menuSelected, event, #ITEMS)
   item = ITEMS[app.menuSelected]

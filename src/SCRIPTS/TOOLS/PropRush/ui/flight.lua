@@ -5,13 +5,16 @@ local R = app.load("gfx/render3d")
 local Quad = app.load("physics/quad", app.rates)
 local Ground = app.load("world/ground", R)
 local Scene = app.load("world/scene", R)
-local Course = app.load("world/course", R, Scene)
+local Gap = app.load("world/gap")
 local Hud = app.load("ui/hud", gfx)
 
 R.setSink(gfx)
 
 -- EXIT pauses into ui/pause (about 8 KB more heap while paused); false: EXIT leaves flight at once
 local PAUSE_MENU = true
+-- Cue numbers (platform/cues)
+local CUE_THROTTLE, CUE_ARMED, CUE_DISARMED, CUE_RESPAWN, CUE_LOW, CUE_EMPTY, CUE_RANGE, CUE_LINK =
+  3, 4, 5, 6, 12, 13, 14, 15
 local MAX_STEP = 0.02
 -- Frames longer than this (menu pauses, load hitches) are not simulated in full
 local MAX_FRAME = 0.1
@@ -48,7 +51,7 @@ local function respawn()
   quad:reset(s.x, s.y, s.z, s.heading)
   state, stateTime, waitTime, nagAt = "flying", 0, 0, NAG_FIRST
   lowTime, lowBeeps, dead, warned = 0, 0, false, false
-  Sound.cue("respawn")
+  Sound.cue(CUE_RESPAWN)
   mode:reset()
 end
 
@@ -65,8 +68,8 @@ local Flight = {}
 -- entry: the map's catalogue entry
 function Flight.enter(entry)
   Map = nil
-  Map = app.load("maps/" .. entry.id, Ground, Scene, Course)
-  mode = app.load("modes/" .. entry.mode, Course).new(Map, Sound, app.save, entry.id)
+  Map = app.load("maps/" .. entry.id, Ground, Scene, Gap, R, app.load)
+  mode = app.load("modes/" .. entry.mode, Gap).new(Map, Sound, app.save, entry.id)
   R.setView(0, 0, gfx.W, gfx.H, settings.fov, settings.camAngle)
   respawn()
 end
@@ -135,12 +138,12 @@ function Flight.run(event, dt)
       waitTime = waitTime + dt
       if waitTime >= nagAt then
         nagAt = nagAt + NAG_EVERY
-        Sound.cue("throttle")
+        Sound.cue(CUE_THROTTLE)
       end
     else
       waitTime, nagAt = 0, NAG_FIRST
       if arming then
-        Sound.cue(arming)
+        Sound.cue(arming == "armed" and CUE_ARMED or CUE_DISARMED)
       end
       if not quad.armed then
         message = "ARM TO FLY"
@@ -170,14 +173,14 @@ function Flight.run(event, dt)
       if quad.dead then
         if not dead then
           dead = true
-          Sound.cue("empty")
+          Sound.cue(CUE_EMPTY)
         end
       elseif v < LOW_CELL then
         lowTime = lowTime + frame
         if lowBeeps < LOW_MAX and lowTime >= LOW_TIME + LOW_EVERY * lowBeeps then
           lowBeeps = lowBeeps + 1
           -- Three beeps
-          Sound.cue("low", 2)
+          Sound.cue(CUE_LOW, 2)
         end
       elseif v > LOW_CLEAR then
         lowTime, lowBeeps = 0, 0
@@ -211,11 +214,11 @@ function Flight.run(event, dt)
     if loss > OUT_OF_RANGE then
       if blink and not blinkOn then
         warned = true
-        Sound.cue("range")
+        Sound.cue(CUE_RANGE)
       end
     elseif warned then
       warned = false
-      Sound.cue("link")
+      Sound.cue(CUE_LINK)
     end
   end
   blinkOn = blink

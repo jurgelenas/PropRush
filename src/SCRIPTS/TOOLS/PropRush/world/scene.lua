@@ -85,8 +85,6 @@ local function boxDistance2(b, x, y, z)
   return d + t * t
 end
 
--- Insertion sort on distance ([11] dist), farthest first: the order barely changes between frames, and B&W radios have no
--- table lib
 -- The quad at x, y, z within RADIUS of box b: the box grown by RADIUS with rounded edges and corners, so clipping
 -- one hits it at an angle; b[1..6]: x0, y0, z0, x1, y1, z1
 local function touches(b, x, y, z)
@@ -101,30 +99,39 @@ end
 
 Scene.touches, Scene.distance2 = touches, boxDistance2
 
-local function sortByDistance(list)
-  for i = 2, #list do
-    local b = list[i]
+-- list[i..j] by dist ([11]), farthest first
+local function sortRange(list, i, j)
+  for k = i + 1, j do
+    local b = list[k]
     local d = b[11]
-    local j = i - 1
-    while j > 0 and list[j][11] < d do
-      list[j + 1] = list[j]
-      j = j - 1
+    local m = k - 1
+    while m >= i and list[m][11] < d do
+      list[m + 1] = list[m]
+      m = m - 1
     end
-    list[j + 1] = b
+    list[m + 1] = b
   end
 end
 
--- Structure parts on one level, drawn far to near
-local function drawLevel(parts, ox, oz, fogged)
-  for i = 1, #parts do
-    local b = parts[i]
+-- Structure: one building made of boxes, such as floors on columns or a wall with openings, sorted as a
+-- whole against the rest of the scene. Its parts are grouped into levels by base height and drawn level
+-- by level, so floors and the columns between them overlap correctly from inside and out. A part must
+-- stay below the next level's base: columns are split at every floor.
+-- Slots 1..11 are its bounds, sphere and dist as a box's; its parts follow from PARTS on in base height order,
+-- so a level is a run of them. st:add(x, z, w, d, h, y0) takes a part as addBox does, standing at height y0.
+local PARTS = 12
+
+-- Parts st[i..j], one level, drawn far to near
+local function drawLevel(st, i, j, ox, oz, fogged)
+  for k = i, j do
+    local b = st[k]
     -- dist from cx, cz
     local dx, dz = b[7] - ox, b[9] - oz
     b[11] = dx * dx + dz * dz
   end
-  sortByDistance(parts)
-  for i = 1, #parts do
-    local b = parts[i]
+  sortRange(st, i, j)
+  for k = i, j do
+    local b = st[k]
     -- cx, cy, cz, rad
     if R.sphereVisible(b[7], b[8], b[9], b[10]) then
       drawBox(b, fogged)
@@ -133,31 +140,50 @@ local function drawLevel(parts, ox, oz, fogged)
 end
 
 -- Levels away from the camera's one go first, from the far end inwards, and the camera's own level last.
--- Levels never overlap in height, so a sight line crosses them in that order.
+-- Levels never overlap in height, so a sight line crosses them in that order. Parts' [2] is y0.
 local function drawStructure(st, fogged)
   local ox, oy, oz = R.cameraPos()
-  local levels, bases = st.levels, st.bases
-  local n = #levels
-  local c = 1
-  while c < n and bases[c + 1] <= oy do
-    c = c + 1
+  local n = #st
+  -- The camera's level c0..c1: the highest at or below it, else the lowest
+  local c0, c1 = PARTS, PARTS
+  local i = PARTS
+  while i <= n do
+    local base, j = st[i][2], i
+    while j < n and st[j + 1][2] == base do
+      j = j + 1
+    end
+    if base > oy and i > PARTS then
+      break
+    end
+    c0, c1, i = i, j, j + 1
   end
-  for i = n, c + 1, -1 do
-    drawLevel(levels[i], ox, oz, fogged)
+  local j = n
+  while j > c1 do
+    local k = j
+    while k > c1 + 1 and st[k - 1][2] == st[j][2] do
+      k = k - 1
+    end
+    drawLevel(st, k, j, ox, oz, fogged)
+    j = k - 1
   end
-  for i = 1, c - 1 do
-    drawLevel(levels[i], ox, oz, fogged)
+  i = PARTS
+  while i < c0 do
+    local k = i
+    while k < c0 - 1 and st[k + 1][2] == st[i][2] do
+      k = k + 1
+    end
+    drawLevel(st, i, k, ox, oz, fogged)
+    i = k + 1
   end
-  drawLevel(levels[c], ox, oz, fogged)
+  drawLevel(st, c0, c1, ox, oz, fogged)
 end
 
 local function structureCollides(st, x, y, z)
   if not touches(st, x, y, z) then
     return false
   end
-  local parts = st.parts
-  for i = 1, #parts do
-    local b = parts[i]
+  for i = PARTS, #st do
+    local b = st[i]
     if touches(b, x, y, z) then
       return b
     end
@@ -169,44 +195,33 @@ local function structureNear(st, x, y, z, d2)
   if boxDistance2(st, x, y, z) >= d2 then
     return false
   end
-  local parts = st.parts
-  for i = 1, #parts do
-    if boxDistance2(parts[i], x, y, z) < d2 then
+  for i = PARTS, #st do
+    if boxDistance2(st[i], x, y, z) < d2 then
       return true
     end
   end
   return false
 end
 
--- Structure: one building made of boxes, such as floors on columns or a wall with openings, sorted as a
--- whole against the rest of the scene. Its parts are grouped into levels by base height and drawn level
--- by level, so floors and the columns between them overlap correctly from inside and out. A part must
--- stay below the next level's base: columns are split at every floor. Its slots 1..10 are its bounds and sphere.
--- st:add(x, z, w, d, h, y0) takes a part as addBox does, standing at height y0.
+-- Inserted after the parts at or below its base
 local function addPart(st, x, z, w, d, h, y0)
   local b = newBox(x, z, w, d, h, y0)
-  local parts, levels, bases = st.parts, st.levels, st.bases
-  parts[#parts + 1] = b
-  local i = 1
-  while bases[i] and bases[i] < y0 do
-    i = i + 1
+  local i = #st
+  -- y0
+  while i >= PARTS and st[i][2] > y0 do
+    st[i + 1] = st[i]
+    i = i - 1
   end
-  if bases[i] ~= y0 then
-    for j = #bases, i, -1 do
-      bases[j + 1], levels[j + 1] = bases[j], levels[j]
-    end
-    bases[i], levels[i] = y0, {}
-  end
-  local level = levels[i]
-  level[#level + 1] = b
+  st[i + 1] = b
 
   -- Bounds: x0, y0, z0 ([1..3]) the least of the parts', x1, y1, z1 ([4..6]) the greatest; then the sphere round
   -- them: cx, cy, cz ([7..9]) and rad ([10])
+  local first = #st == PARTS
   for k = 1, 3 do
-    if #parts == 1 or b[k] < st[k] then
+    if first or b[k] < st[k] then
       st[k] = b[k]
     end
-    if #parts == 1 or b[k + 3] > st[k + 3] then
+    if first or b[k + 3] > st[k + 3] then
       st[k + 3] = b[k + 3]
     end
   end
@@ -216,27 +231,11 @@ local function addPart(st, x, z, w, d, h, y0)
   return b
 end
 
+local STRUCTURE =
+  { __index = { add = addPart, draw = drawStructure, collides = structureCollides, near = structureNear } }
+
 function Scene.newStructure()
-  return {
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    0,
-    levels = {},
-    bases = {},
-    parts = {},
-    add = addPart,
-    draw = drawStructure,
-    collides = structureCollides,
-    near = structureNear,
-  }
+  return setmetatable({ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 }, STRUCTURE)
 end
 
 -- Scene: objects drawn back to front, culled to the view, with collision.
@@ -248,9 +247,9 @@ function Scene.new()
   local frame = 0
   local scene = { objects = objects }
 
-  -- Building standing on the ground: centre x, centre z, width (x), depth (z), height
-  function scene.addBox(x, z, w, d, h)
-    local b = newBox(x, z, w, d, h, 0)
+  -- Building: centre x, centre z, width (x), depth (z), height, standing on the ground or at y0
+  function scene.addBox(x, z, w, d, h, y0)
+    local b = newBox(x, z, w, d, h, y0 or 0)
     objects[#objects + 1] = b
     return b
   end
@@ -281,7 +280,8 @@ function Scene.new()
     end
     frame = frame + 1
     if frame % SORT_EVERY == 0 then
-      sortByDistance(objects)
+      -- Insertion sort: the order barely changes between frames, and B&W radios have no table lib
+      sortRange(objects, 1, #objects)
     end
     local outlineDist = maxDist * OUTLINE_FACTOR
     outlineDist = outlineDist * outlineDist
