@@ -54,6 +54,9 @@ jobs:
           | EdgeTX 2.12+, black-and-white screen | \`proprush-$GITHUB_REF_NAME.zip\` |
 
           Extract the zip onto the SD card root, then open **PropRush** from the Tools menu.
+
+          For the best frame rate, switch the internal and external RF modules off in the model setup while you
+          play: the radio then has more CPU time for the game.
           EOF2
           )
           # --notes is placed before the generated notes.
