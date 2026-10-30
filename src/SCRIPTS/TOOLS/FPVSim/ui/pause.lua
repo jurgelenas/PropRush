@@ -1,5 +1,5 @@
 -- Pause menu over the paused flight: resume, the settings worth changing mid-run (applied at once, camera changes
--- showing in the view beside it), restart and quit. Loaded on pausing and dropped on resuming. Changes are saved
+-- showing in the view beside it, sound and haptic playing their sample), restart and quit. Loaded on pausing and dropped on resuming. Changes are saved
 -- once flight is left (app.settingsChanged), not with flight in memory.
 -- ENTER edits a setting, opens RATES or picks an action; NEXT/PREV change it, ENTER or EXIT ends editing.
 -- EXIT leaves RATES; on the top page it resumes.
@@ -13,7 +13,16 @@ local ROW_H = 8
 -- The top page's panel width: the view shows to its right
 local PANEL_W = 66
 
-local KEYS = { camAngle = true, fov = true, quality = true, angleMode = true, batterySim = true, fps = true }
+local KEYS = {
+  camAngle = true,
+  fov = true,
+  quality = true,
+  angleMode = true,
+  batterySim = true,
+  fps = true,
+  sound = true,
+  haptic = true,
+}
 local items = { { label = "RESUME", action = "resume" } }
 for _, item in ipairs(app.load("config/items")) do
   if KEYS[item.key] or item.label == "RATES" then
@@ -40,6 +49,9 @@ function Pause.run(event)
       if d ~= 0 then
         Edit.change(item, d)
         app.settingsChanged = true
+        if item.preview then
+          app.sound.preview(item.key)
+        end
       end
     end
   elseif event == EVT_VIRTUAL_EXIT then

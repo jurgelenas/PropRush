@@ -46,9 +46,9 @@ function Map.collides(x, y, z)
   return scene.collides(x, y, z)
 end
 
--- Video link: clean within 150 m of the tower, lost at 400 m
+-- Video link: clean within 70 m of the tower (the farthest gate is 55 m out), lost at 160 m
 function Map.signalLoss(x, y, z)
-  return Ground.rangeLoss(x, y, z, 32, 40, 150, 400)
+  return Ground.rangeLoss(x, y, z, 32, 40, 70, 160)
 end
 
 return Map

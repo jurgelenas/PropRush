@@ -47,7 +47,7 @@ local items = {
   { key = "angleMode", label = "MODE", choices = { false, true }, labels = { "ACRO", "ANGLE" } },
   { key = "batterySim", label = "BATTERY", choices = { true, false }, labels = ON_OFF },
   { key = "fps", label = "FPS", choices = { true, false }, labels = ON_OFF },
-  { key = "sound", label = "SOUND", choices = { 2, 1, 0 }, labels = { "ALL", "NO MOTOR", "OFF" }, preview = true },
+  { key = "sound", label = "SOUND", choices = { 2, 1, 0 }, labels = { "ALL", "NO MTR", "OFF" }, preview = true },
   { key = "haptic", label = "HAPTIC", choices = { true, false }, labels = ON_OFF, preview = true },
   { label = "RATES", page = rates },
   { label = "CONTROLS", page = controls },
