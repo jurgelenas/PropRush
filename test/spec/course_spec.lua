@@ -1,0 +1,117 @@
+-- Race kit: gates, ladders, side-by-side gates, cubes and flags; their openings and collision.
+
+local H = dofile("test/harness.lua")
+H.install(128, 64)
+
+local SRC = "src/SCRIPTS/TOOLS/PropRush/"
+local R = assert(loadfile(SRC .. "gfx/render3d.lua"))()
+local Scene = assert(loadfile(SRC .. "world/scene.lua"))(R)
+local Course = assert(loadfile(SRC .. "world/course.lua"))(R, Scene)
+
+local through = Course.through
+
+-- A frame's step from z - 1 to z + 1 at x, y
+local function northwards(g, x, y, z)
+  return through(g, x, y, z - 1, x, y, z + 1)
+end
+
+describe("Course", function()
+  local scene
+  before_each(function()
+    scene = Scene.new()
+  end)
+
+  describe("gate", function()
+    it("scores through its opening only", function()
+      local g = Course.addGate(scene, 0, 10, 3, 2.4, 1, true)
+      assert.is_true(northwards(g, 0, 2.2, 10))
+      assert.is_false(northwards(g, 2, 2.2, 10))
+      assert.is_false(northwards(g, 0, 0.5, 10))
+      assert.equal(3.4, g.top)
+    end)
+
+    it("collides on its posts and bars, not in the opening", function()
+      Course.addGate(scene, 0, 10, 3, 2.4, 1, true)
+      assert.is_truthy(scene.collides(1.65, 2, 10))
+      assert.is_truthy(scene.collides(0, 3.55, 10))
+      assert.is_truthy(scene.collides(0, 0.85, 10))
+      assert.is_falsy(scene.collides(0, 2.2, 10))
+      assert.is_falsy(scene.collides(0, 0.3, 10))
+    end)
+  end)
+
+  describe("ladder", function()
+    it("has an opening per rung, bottom first, split by the bars", function()
+      local gaps = Course.addFrame(scene, 0, 10, 3, 2, 0.5, true, 1, 3)
+      assert.equal(3, #gaps)
+      assert.is_true(northwards(gaps[1], 0, 1.5, 10))
+      assert.is_true(northwards(gaps[2], 0, 3.8, 10))
+      assert.is_true(northwards(gaps[3], 0, 6.1, 10))
+      assert.is_false(northwards(gaps[2], 0, 1.5, 10))
+      assert.is_truthy(scene.collides(0, 2.65, 10))
+    end)
+  end)
+
+  describe("triple gate", function()
+    it("is one opening across three, with posts between", function()
+      local gaps = Course.addFrame(scene, 0, 10, 3, 2.4, 0.5, false, 3, 1)
+      assert.equal(1, #gaps)
+      local g = gaps[1]
+      for _, z in ipairs({ 6.7, 10, 13.3 }) do
+        assert.is_true(through(g, -1, 1.5, z, 1, 1.5, z))
+        assert.is_falsy(scene.collides(0, 1.5, z))
+      end
+      assert.is_truthy(scene.collides(0, 1.5, 11.65))
+      assert.is_false(through(g, -1, 1.5, 15.5, 1, 1.5, 15.5))
+    end)
+  end)
+
+  describe("cube", function()
+    it("scores down through its top and out through a side", function()
+      local c = Course.addCube(scene, 0, 10, 3, 2)
+      assert.is_true(through(c.top, 0, 6, 10, 0, 4, 10))
+      assert.is_true(northwards(c.n, 0, 3.5, 11.6))
+      assert.is_true(through(c.e, 1, 3.5, 10, 2, 3.5, 10))
+      assert.is_false(through(c.top, 2, 6, 10, 2, 4, 10))
+    end)
+
+    it("stands on legs and is hollow", function()
+      Course.addCube(scene, 0, 10, 3, 2)
+      assert.is_truthy(scene.collides(1.65, 1, 11.65))
+      assert.is_falsy(scene.collides(0, 1, 10))
+      assert.is_falsy(scene.collides(0, 3.5, 10))
+    end)
+  end)
+
+  describe("flag", function()
+    it("counts only passing on its side", function()
+      local g = Course.addFlag(scene, 0, 10, 1, 0)
+      assert.is_true(northwards(g, 3, 1.5, 10))
+      assert.is_false(northwards(g, -3, 1.5, 10))
+    end)
+
+    it("collides on its pole and banner", function()
+      Course.addFlag(scene, 0, 10, 1, 0)
+      assert.is_truthy(scene.collides(0, 1, 10))
+      assert.is_truthy(scene.collides(-0.5, 2.5, 10))
+      assert.is_falsy(scene.collides(0.5, 2.5, 10))
+    end)
+  end)
+
+  it("draws every piece near and far without error", function()
+    Course.addFrame(scene, 0, 10, 3, 2, 0.5, true, 1, 3)
+    Course.addFrame(scene, 10, 10, 3, 2, 0.5, true, 3, 1)
+    Course.addCube(scene, -10, 10, 3, 2)
+    Course.addFlag(scene, 0, 20, 1, 0)
+    R.setSink(assert(loadfile(SRC .. "gfx/bw.lua"))())
+    R.setView(0, 0, 128, 64, 95, 0)
+    local Quad = assert(loadfile(SRC .. "physics/quad.lua"))(assert(loadfile(SRC .. "physics/rates.lua"))())
+    local q = Quad.new()
+    for _, z in ipairs({ -200, 0, 9.5 }) do
+      q:reset(0, 1.5, z, 0)
+      R.setCamera(q)
+      scene.draw(2)
+      scene.draw(3)
+    end
+  end)
+end)
