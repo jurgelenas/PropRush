@@ -1,5 +1,5 @@
--- Razor: a tight course of flicks: north up a three-gate chicane, a right hairpin round a flag, down through a
--- stack's bottom and back up through its top, out and back through a side-by-side pair, and home round a flag.
+-- Razor: a tight course of flicks: north up a three-gate chicane into a side-by-side pair and back out through it, down
+-- through a stack's bottom and back up through its top, a right hairpin, two gates stepping down and home round a flag.
 
 local Ground, Scene, Gap, R, load = ...
 local Course = load("world/course", R, Scene, Gap)
@@ -24,27 +24,29 @@ local function flag(x, z, dx, dz)
 end
 
 gate(0, 8, 0.5, true)
--- Chicane: 10 m left and right every 16 m
-gate(-5, 24, 0.5, true)
-gate(5, 40, 1.5, true)
-gate(-5, 56, 0.5, true)
-flag(6, 72, 0, 1)
--- Stack: bottom flown south, a right hairpin round the flag below it, then the top north
+-- Chicane: 5 m left and right every 16 m
+gate(-2.5, 24, 0.5, true)
+gate(2.5, 40, 1.5, true)
+gate(-2.5, 56, 0.5, true)
+-- Pair: the west opening north as the chicane's next step, a right hairpin round the flag, the east one back south
+local pair = Course.addFrame(scene, 4, 72, W, H, 0.5, true, 2, 1)
+gates[#gates + 1] = pair[1]
+flag(4, 86, 0, 1)
+gates[#gates + 1] = pair[2]
+-- Stack: bottom flown south, a left loop round the flag below it, then the top north
 local stack = Course.addFrame(scene, 16, 40, W, H, 0.5, true, 1, 2)
 gates[#gates + 1] = stack[1]
-flag(16, 25, 1, 0)
+flag(16, 25, -1, 0)
 gates[#gates + 1] = stack[2]
--- Pair: the west opening north, a right hairpin round the flag, the east one back south
-local pair = Course.addFrame(scene, 29, 56, W, H, 0.5, true, 2, 1)
-gates[#gates + 1] = pair[1]
-flag(29, 68, 0, 1)
-gates[#gates + 1] = pair[2]
-gate(30, 22, 1.5, true)
+-- Right round the flag, then south stepping down
+flag(22, 58, -1, 0)
+gate(28, 40, 3.5, true)
+gate(28, 20, 0.5, true)
 -- Right round the flag past the pad into the start
-flag(16, -4, 0, -1)
+flag(14, -4, 0, -1)
 Map.gates = gates
 
--- Sheds west of the chicane, a mast east of the pair
+-- Sheds west of the chicane, a mast east of the stack
 scene.addBox(-16, 32, 8, 5, 4)
 scene.addBox(-15, 44, 4, 4, 3)
 scene.addBox(42, 46, 2, 2, 12)
