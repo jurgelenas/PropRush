@@ -23,7 +23,7 @@ local WAYS = {
   freefall = "NNEDWWNEEWWESNSNSSSSWW",
   flatout = "NNNNNEEESSSSSWW",
   apex = "NNESSEESSSSWWN",
-  razor = "NNNNESSNNESSW",
+  razor = "NNNNNESSSNNSSW",
 }
 local WAY = { "WE", "DU", "SN" }
 
