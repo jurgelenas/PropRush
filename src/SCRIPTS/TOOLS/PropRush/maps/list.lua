@@ -1,24 +1,6 @@
 -- Map catalogue for the menus, so maps are only loaded when flown. id: module name under maps/.
 return {
   {
-    id = "gates",
-    name = "GATES",
-    mode = "racing",
-    info = { "Six gates", "round a", "tower" },
-  },
-  {
-    id = "slalom",
-    name = "SLALOM",
-    mode = "racing",
-    info = { "Flag lines", "woven left", "and right" },
-  },
-  {
-    id = "tech",
-    name = "TECH",
-    mode = "racing",
-    info = { "Ladder, cube", "and triple", "gate, tight" },
-  },
-  {
     id = "super8",
     name = "SUPER 8",
     mode = "racing",
@@ -31,10 +13,28 @@ return {
     info = { "Fast, wide", "turns and a", "dive gate" },
   },
   {
-    id = "bando",
-    name = "BANDO",
+    id = "slalom",
+    name = "SLALOM",
+    mode = "racing",
+    info = { "Flag lines", "woven left", "and right" },
+  },
+  {
+    id = "gates",
+    name = "GATES",
+    mode = "racing",
+    info = { "Six gates", "round a", "tower" },
+  },
+  {
+    id = "tech",
+    name = "TECH",
+    mode = "racing",
+    info = { "Ladder, cube", "and triple", "gate, tight" },
+  },
+  {
+    id = "yard",
+    name = "YARD",
     mode = "freestyle",
-    info = { "Old mill,", "chimney and", "ruined wall" },
+    info = { "Building site,", "crane and", "containers" },
   },
   {
     id = "city",
@@ -49,10 +49,10 @@ return {
     info = { "Farmhouse,", "pines and", "a paddock" },
   },
   {
-    id = "yard",
-    name = "YARD",
+    id = "bando",
+    name = "BANDO",
     mode = "freestyle",
-    info = { "Building site,", "crane and", "containers" },
+    info = { "Old mill,", "chimney and", "ruined wall" },
   },
   {
     id = "vibetown",
