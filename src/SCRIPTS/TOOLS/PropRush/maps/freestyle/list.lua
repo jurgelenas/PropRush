@@ -6,6 +6,11 @@ return {
     info = { "Turbines to", "fly through,", "pylons, lines" },
   },
   {
+    id = "trainyard",
+    name = "TRAINYARD",
+    info = { "A moving", "train, sheds", "and a bridge" },
+  },
+  {
     id = "yard",
     name = "YARD",
     info = { "Building site,", "crane and", "containers" },
@@ -41,8 +46,8 @@ return {
     info = { "Pillar ring", "and two", "buildings" },
   },
   {
-    id = "trainyard",
-    name = "TRAINYARD",
-    info = { "A moving", "train, sheds", "and a bridge" },
+    id = "oldmill",
+    name = "OLD MILL",
+    info = { "Windmill,", "a canal and", "a lift bridge" },
   },
 }
