@@ -61,6 +61,12 @@ return {
     info = { "Water tower,", "billboard and", "an overpass" },
   },
   {
+    id = "harbor",
+    name = "HARBOR",
+    mode = "freestyle",
+    info = { "Ship, crane,", "pier and a", "lighthouse" },
+  },
+  {
     id = "pillars",
     name = "PILLARS",
     mode = "freestyle",
