@@ -11,6 +11,8 @@ end
 
 local Input = {
   sticks = { ail = 0, ele = 0, thr = 0, rud = 0 },
+  -- The arm source setting with no source: armed on throttle low
+  ALWAYS = "always",
 }
 
 local function idOf(name)
@@ -51,6 +53,23 @@ function Input.read()
   s.rud = read("yaw")
   s.thr = (read("thr") + 1) / 2
   return s
+end
+
+-- The arm source: true while it reads above its middle (below when reversed); nil with ALWAYS or a source this
+-- radio does not have
+local armName, armId
+function Input.arm()
+  local name = settings.armSrc
+  if name ~= armName then
+    armName, armId = name, name ~= Input.ALWAYS and idOf(name)
+  end
+  if armId then
+    local v = getValue(armId)
+    if settings.armRev then
+      return v < 0
+    end
+    return v > 0
+  end
 end
 
 return Input

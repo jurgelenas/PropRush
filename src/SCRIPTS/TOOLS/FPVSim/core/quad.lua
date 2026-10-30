@@ -41,6 +41,8 @@ local FLOOR = 0.7
 -- Body up-axis height (cos of tilt) below which a quad resting on a floor has tipped over: 60 degrees
 local TIP_OVER = 0.5
 local REST_SPEED = 2
+-- Arming waits for the throttle under this
+local ARM_THROTTLE = 0.05
 
 local Quad = {}
 Quad.__index = Quad
@@ -71,6 +73,8 @@ function Quad:reset(x, y, z, headingDeg)
   self.sag = 0
   self.voltage = CELL_FULL
   self.dead = false
+  -- Disarmed, and the arm source must be seen off before it arms
+  self.armed, self.armReady = false, false
   self.throttle = 0
   -- Prop strike seconds left and the tumble, in world rad/s
   self.strike = 0
@@ -128,7 +132,29 @@ function Quad:rotate(pitchUp, yawRight, rollRight)
     self.turnPitch + pitchUp, self.turnRoll + rollRight, self.turnYaw + yawRight
 end
 
--- Sticks: ail/ele/rud -1..1, thr 0..1. Returns true on a crash.
+-- The flight controller's arming, once a frame. on: the arm source is on, nil for none (armed on throttle low).
+-- Returns "armed" or "disarmed" when it changes, "throttle" while arming waits for the throttle low.
+function Quad:arm(on, thr)
+  if on == nil then
+    on, self.armReady = true, true
+  end
+  if not on then
+    self.armReady = true
+    if self.armed then
+      self.armed = false
+      return "disarmed"
+    end
+  elseif not self.armed and self.armReady then
+    if thr >= ARM_THROTTLE then
+      return "throttle"
+    end
+    self.armed = true
+    return "armed"
+  end
+end
+
+-- Sticks: ail/ele/rud -1..1, thr 0..1. Disarmed or with the battery dead the motors are off and the flight
+-- controller holds nothing. Returns true on a crash.
 function Quad:step(dt, sticks, settings)
   local pitchRate, rollRate
   local s = settings
@@ -141,6 +167,7 @@ function Quad:step(dt, sticks, settings)
     rollRate = stickRate(sticks.ail, s.rollRcRate, s.rollRate, s.rollExpo)
   end
   local thr = 0
+  local motors = self.armed and not self.dead
   if self.strike > 0 then
     self.strike = self.strike - dt
     local wx, wy, wz = self.wx, self.wy, self.wz
@@ -151,10 +178,10 @@ function Quad:step(dt, sticks, settings)
     )
     local k = 1 - TUMBLE_DAMP * dt
     self.wx, self.wy, self.wz = wx * k, wy * k, wz * k
-    if not self.dead then
+    if motors then
       thr = sticks.thr * STRIKE_THRUST
     end
-  elseif not self.dead then
+  elseif motors then
     self:rotate(pitchRate * RAD * dt, yawRate * RAD * dt, rollRate * RAD * dt)
     thr = sticks.thr
   end

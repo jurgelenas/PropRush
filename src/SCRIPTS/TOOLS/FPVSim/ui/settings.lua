@@ -14,14 +14,18 @@ local RAD = math.pi / 180
 local RATE_STEPS = 12
 
 local Sources = app.load("platform/sources", input)
--- The radio's sources, listed when first shown
-local sourceList
-local function sourcesNow()
-  sourceList = sourceList or Sources.list()
-  return sourceList
+-- The radio's sources for the axes and for arming, each listed when first shown
+local axisList, armList
+local function sourcesOf(item)
+  if item.arm then
+    armList = armList or Sources.list(true)
+    return armList
+  end
+  axisList = axisList or Sources.list()
+  return axisList
 end
 
-local TOP = { items = app.settingItems, title = "SETTINGS" }
+local TOP = { items = app.load("core/items"), title = "SETTINGS" }
 -- Current page: items and title; selection, scroll position and the page it was opened from
 local page, editing
 
@@ -39,7 +43,7 @@ local function valueText(item)
   if item.page then
     return ">"
   elseif item.source then
-    return Sources.label(sourcesNow(), v)
+    return Sources.label(sourcesOf(item), v)
   elseif item.labels then
     return item.labels[indexOf(item.choices, v)]
   elseif item.format then
@@ -52,7 +56,7 @@ end
 local function change(item, d)
   local v = settings[item.key]
   if item.source then
-    local names = sourcesNow().names
+    local names = sourcesOf(item).names
     settings[item.key] = names[(indexOf(names, v) - 1 + d) % #names + 1]
   elseif item.choices then
     local n = #item.choices
@@ -128,6 +132,15 @@ local function drawSticksPreview(x, y)
   drawGimbal(x + PREVIEW_W - GIMBAL + 1, y, s.ail, s.ele)
 end
 
+-- The arm source live, and that the model arms with it: the sim's switch is the model's own
+local function drawArmPreview(x, y)
+  local on = input.arm()
+  gfx.text(x + PREVIEW_W / 2, y + 2, on == false and "DISARMED" or "ARMED", "c", nil, on ~= false)
+  gfx.text(x + PREVIEW_W / 2, y + 12, "THE MODEL", "c")
+  gfx.text(x + PREVIEW_W / 2, y + 19, "ARMS TOO", "c")
+  gfx.text(x + PREVIEW_W / 2, y + 26, "IF RF ON", "c")
+end
+
 local function open(items, title, parent)
   page = { items = items, title = title, selected = 1, first = 1, parent = parent }
 end
@@ -151,10 +164,11 @@ function Settings.run(event)
         change(item, d)
       elseif item.source then
         -- Moving a stick, pot or slider picks it
-        local name = Sources.moved(sourceList)
+        local list = sourcesOf(item)
+        local name = Sources.moved(list)
         if name then
           settings[item.key] = name
-          Sources.snapshot(sourceList)
+          Sources.snapshot(list)
         end
       end
     end
@@ -162,7 +176,7 @@ function Settings.run(event)
     if page.parent then
       page = page.parent
     else
-      Save.write()
+      Save.write(TOP.items)
       return "menu"
     end
   elseif event == EVT_VIRTUAL_ENTER then
@@ -171,7 +185,7 @@ function Settings.run(event)
     else
       editing = true
       if item.source then
-        Sources.snapshot(sourcesNow())
+        Sources.snapshot(sourcesOf(item))
       end
     end
   else
@@ -204,6 +218,8 @@ function Settings.run(event)
     drawRatePreview(W - PREVIEW_W - 1, List.TOP + 2, axis)
   elseif items[selected].sticks then
     drawSticksPreview(W - PREVIEW_W - 1, List.TOP + 2)
+  elseif items[selected].arm then
+    drawArmPreview(W - PREVIEW_W - 1, List.TOP + 2)
   else
     drawCameraPreview(W - PREVIEW_W - 1, List.TOP + 2)
   end

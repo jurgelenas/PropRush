@@ -19,7 +19,8 @@ H.SOURCES = {
   { 79, "s1", "S1" },
   { 80, "s2", "S2" },
   { 87, "min", "MIN" },
-  { 98, "SA", "SA" },
+  { 98, "sa", "SA", switch = true },
+  { 99, "sb", "SB", switch = true },
   { 198, "ch1", "CH1" },
   { 199, "ch2", "CH2" },
   { 200, "ch3", "CH3" },
@@ -88,14 +89,15 @@ function H.install(w, h)
       H.text[s.texts] = text
     end,
   }
-  -- Sources as a Boxer lists them: id, getValue name, label
+  -- Sources as a Boxer lists them: id, getValue name, label; getFieldInfo finds a switch by name only
   local byId, byName = {}, {}
   for _, src in ipairs(H.SOURCES) do
-    local f = { id = src[1], name = src[2], label = src[3] }
+    local f = { id = src[1], name = src[2], label = src[3], switch = src.switch }
     byId[f.id], byName[f.name] = f, f
   end
+  -- As the firmware, switches are found by name only
   getFieldInfo = function(source)
-    local f = byId[source] or byName[source]
+    local f = byName[source] or byId[source] and not byId[source].switch and byId[source]
     return f and { id = f.id, name = f.name, desc = f.label }
   end
   getSourceName = function(id)

@@ -5,8 +5,8 @@ local gfx = ...
 local List = { TOP = 10 }
 
 function List.title(text)
-  gfx.rect(0, 0, gfx.W, List.TOP - 1, 4)
-  gfx.text(2, 1, text, nil, nil, true)
+  gfx.rect(0, 0, gfx.W, List.TOP, 4)
+  gfx.text(2, (List.TOP - gfx.FH) // 2, text, nil, nil, true)
 end
 
 -- +1 for NEXT, -1 for PREV (held keys repeat), 0 otherwise
@@ -24,12 +24,12 @@ function List.move(index, event, n)
   return (index - 1 + List.step(event)) % n + 1
 end
 
--- Row of width w at y, h pixels high, inverted when selected
+-- Row of width w at y, h pixels high, its text centred upright, inverted when selected
 function List.row(y, h, w, text, selected, big)
   if selected then
     gfx.rect(0, y, w, h, 4)
   end
-  gfx.text(2, y + 1, text, nil, big, selected)
+  gfx.text(2, y + (h - (big and gfx.BIG_FH or gfx.FH)) // 2, text, nil, big, selected)
 end
 
 -- Lines of small text from y down

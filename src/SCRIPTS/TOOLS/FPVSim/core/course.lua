@@ -49,14 +49,16 @@ local GATE_BAR, GATE_PX = 0.3, 2.5
 
 -- Edges in the gate's plane: horizontal offset from the centre, height
 local function gateLine(g, a, ay, b, by, shade)
-  local x, z, ux, uz = g.cx, g.cz, g.ux, g.uz
+  -- The structure's cx, cz (scene box slots)
+  local x, z, ux, uz = g[7], g[9], g.ux, g.uz
   R.line(x + ux * a, ay, z + uz * a, x + ux * b, by, z + uz * b, shade)
 end
 
 local function drawGate(g, fogged)
   -- Ground distance within which the bars are GATE_PX or wider; dist is to the centre, so plus the half width
   local near = GATE_BAR * R.focal() / GATE_PX + g.half + GATE_BAR
-  if g.dist < near * near then
+  -- dist (scene box slot)
+  if g[11] < near * near then
     g.drawBoxes(g, fogged)
     return
   end
@@ -93,13 +95,13 @@ function Course.addGate(scene, x, z, w, h, y0, alongX)
   local base = 0
   if y0 > T then
     base = y0 - T
-    st.add(x - px, z - pz, pw, pd, base, 0)
-    st.add(x + px, z + pz, pw, pd, base, 0)
-    st.add(x, z, bw, bd, T, base)
+    st:add(x - px, z - pz, pw, pd, base, 0)
+    st:add(x + px, z + pz, pw, pd, base, 0)
+    st:add(x, z, bw, bd, T, base)
   end
-  st.add(x - px, z - pz, pw, pd, y0 + h - base, base)
-  st.add(x + px, z + pz, pw, pd, y0 + h - base, base)
-  st.add(x, z, bw, bd, T, y0 + h)
+  st:add(x - px, z - pz, pw, pd, y0 + h - base, base)
+  st:add(x + px, z + pz, pw, pd, y0 + h - base, base)
+  st:add(x, z, bw, bd, T, y0 + h)
   st.drawBoxes, st.draw = st.draw, drawGate
   st.half, st.base, st.y0, st.y1 = w / 2, base, y0, y0 + h
   st.ux, st.uz = alongX and 1 or 0, alongX and 0 or 1

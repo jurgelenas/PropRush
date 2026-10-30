@@ -53,7 +53,23 @@ describe("input", function()
 
     it("lists the sticks and pots, then the channels", function()
       assert.equal("rud ele thr ail s1 s2 ch1 ch2 ch3", table.concat(list.names, " "))
-      assert.equal(6, list.analog)
+      assert.equal(6, list.moving)
+    end)
+
+    it("for arming lists ALWAYS, then the switches after the sticks and pots", function()
+      list = Sources.list(true)
+      assert.equal("always rud ele thr ail s1 s2 sa sb ch1 ch2 ch3", table.concat(list.names, " "))
+      assert.equal(9, list.moving)
+      assert.equal("ALWAYS", Sources.label(list, "always"))
+      assert.equal("SB", Sources.label(list, "sb"))
+    end)
+
+    it("picks a switch flipped", function()
+      list = Sources.list(true)
+      H.sticks = { thr = -1024, sb = -1024 }
+      Sources.snapshot(list)
+      H.sticks.sb = 0
+      assert.equal("sb", Sources.moved(list))
     end)
 
     it("labels in capitals, without icons", function()

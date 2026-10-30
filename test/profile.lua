@@ -59,6 +59,7 @@ for _, id in ipairs({ "pillars", "bando", "gates" }) do
   print("PROF map " .. id)
   for _, p in ipairs(POSES) do
     q:reset(p[2], p[3], p[4], p[5])
+    q.armed = true
     q:rotate(-p[6], 0, 0)
     R.setView(0, 0, LCD_W, LCD_H, 95, 25)
     R.setCamera(q)

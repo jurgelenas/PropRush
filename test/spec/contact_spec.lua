@@ -12,7 +12,7 @@ local scene = Scene.new()
 -- A 10 m cube north of the origin and a thin wall east of it
 scene.addBox(0, 20, 10, 10, 10)
 local wall = scene.addStructure()
-wall.add(20, 0, 0.6, 20, 6, 0)
+wall:add(20, 0, 0.6, 20, 6, 0)
 
 local settings = {
   angleMode = true,
@@ -29,6 +29,7 @@ local sticks = { ail = 0, ele = 0, rud = 0, thr = 1 / 4.5 }
 local function fly(p, v, t, thr)
   local q = Quad.new()
   q:reset(p[1], p[2], p[3], 0)
+  q.armed = true
   q.vx, q.vy, q.vz = v[1], v[2], v[3]
   sticks.thr = thr or 1 / 4.5
   local struck = 0
