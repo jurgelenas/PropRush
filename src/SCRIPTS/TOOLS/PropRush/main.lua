@@ -28,8 +28,19 @@ local function switchTo(name, arg)
   collectgarbage("collect")
 end
 
+-- Older Lua takes 0.5 == 0 as true (float against integer), which bends maps' curves straight. As
+-- min_edgetx_version in edgetx.yml.
+local MIN_MAJOR, MIN_MINOR, MIN_REV = 2, 12, 4
+
 local function init()
   app.gfx = load("gfx/bw")
+  lastTime = getTime()
+  local _, _, major, minor, rev = getVersion()
+  if (major * 100 + minor) * 100 + rev < (MIN_MAJOR * 100 + MIN_MINOR) * 100 + MIN_REV then
+    app.minVersion = string.format("%d.%d.%d", MIN_MAJOR, MIN_MINOR, MIN_REV)
+    switchTo("firmware", string.format("%d.%d.%d", major, minor, rev))
+    return
+  end
   app.rates = load("physics/rates")
   app.settings = load("config/settings")
   app.storage = load("platform/storage")
@@ -39,7 +50,6 @@ local function init()
   app.input = load("platform/input", app.settings)
   app.sound = load("platform/sound", app.settings, load("platform/cues"))
   switchTo("intro")
-  lastTime = getTime()
 end
 
 local function run(event)
