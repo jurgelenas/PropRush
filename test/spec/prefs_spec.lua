@@ -1,4 +1,4 @@
--- Save files round trip and damaged-file handling.
+-- Settings and highscore files: round trip and damaged-file handling.
 
 local H = dofile("test/harness.lua")
 H.install(128, 64)
@@ -6,19 +6,22 @@ H.install(128, 64)
 local function load(name, ...)
   return assert(loadfile("src/SCRIPTS/TOOLS/PropRush/" .. name .. ".lua"))(...)
 end
-local PATH = "/SCRIPTS/TOOLS/PropRush/save.txt"
-local BESTS = "/SCRIPTS/TOOLS/PropRush/bests.txt"
+local PATH = "/SCRIPTS/TOOLS/PropRush/settings.txt"
+local HIGHSCORE = "/SCRIPTS/TOOLS/PropRush/highscore.txt"
 
-local items = load("config/items")
+local items = load("config/items", load)
 
 local function fresh()
   local settings = load("config/settings")
-  local Save = load("config/save", load("platform/storage"), settings)
-  Save.load(items)
-  return settings, Save
+  local storage = load("platform/storage")
+  local Prefs = load("config/prefs", storage, settings)
+  Prefs.read(items)
+  local Highscore = load("config/highscore", storage)
+  Highscore.load()
+  return settings, Highscore, Prefs
 end
 
-describe("save", function()
+describe("prefs and highscores", function()
   before_each(function()
     H.files = {}
   end)
@@ -31,41 +34,41 @@ describe("save", function()
 
   describe("bests", function()
     it("a higher score beats the best", function()
-      local _, Save = fresh()
-      Save.record("pillars", 1200)
-      assert.is_false(Save.record("pillars", 900))
-      assert.is_true(Save.record("pillars", 1500))
+      local _, Highscore = fresh()
+      Highscore.record("pillars", 1200)
+      assert.is_false(Highscore.record("pillars", 900))
+      assert.is_true(Highscore.record("pillars", 1500))
     end)
     it("a lower lap time beats the best", function()
-      local _, Save = fresh()
-      assert.is_true(Save.record("gates", 42.5, true))
-      assert.is_false(Save.record("gates", 50, true))
+      local _, Highscore = fresh()
+      assert.is_true(Highscore.record("gates", 42.5, true))
+      assert.is_false(Highscore.record("gates", 50, true))
     end)
     it("are written only when flushed, and only when one changed", function()
-      local _, Save = fresh()
-      Save.record("pillars", 1200)
-      assert.is_nil(H.files[BESTS])
+      local _, Highscore = fresh()
+      Highscore.record("pillars", 1200)
+      assert.is_nil(H.files[HIGHSCORE])
       assert.is_nil(H.files[PATH])
-      Save.flush()
-      assert.equal("pillars=1200\n", H.files[BESTS])
-      H.files[BESTS] = nil
-      Save.record("pillars", 900)
-      Save.flush()
-      assert.is_nil(H.files[BESTS])
+      Highscore.flush()
+      assert.equal("pillars=1200\n", H.files[HIGHSCORE])
+      H.files[HIGHSCORE] = nil
+      Highscore.record("pillars", 900)
+      Highscore.flush()
+      assert.is_nil(H.files[HIGHSCORE])
     end)
   end)
 
   it("round trips settings, the control mapping and bests", function()
-    local settings, Save = fresh()
+    local settings, Highscore, Prefs = fresh()
     settings.camAngle, settings.angleMode, settings.batterySim, settings.rollExpo = 63, true, false, 54
     settings.rollSrc, settings.thrSrc, settings.thrRev = "ch3", "ch1", true
-    Save.record("pillars", 1500)
-    Save.record("gates", 42.5, true)
-    Save.write(items)
-    Save.flush()
+    Highscore.record("pillars", 1500)
+    Highscore.record("gates", 42.5, true)
+    Prefs.write(items)
+    Highscore.flush()
     assert.is_nil(string.find(H.files[PATH], "pillars"), "bests stay out of the settings file")
 
-    settings, Save = fresh()
+    settings, Highscore = fresh()
     assert.equal(63, settings.camAngle)
     assert.is_true(settings.angleMode)
     assert.is_false(settings.batterySim)
@@ -73,16 +76,16 @@ describe("save", function()
     assert.equal("ch3", settings.rollSrc)
     assert.equal("ch1", settings.thrSrc)
     assert.is_true(settings.thrRev)
-    assert.same({ pillars = 1500, gates = 42.5 }, Save.bests)
+    assert.same({ pillars = 1500, gates = 42.5 }, Highscore.byMap)
   end)
 
   describe("a damaged file", function()
-    local settings, Save
+    local settings, Highscore
     before_each(function()
       H.files[PATH] = "camAngle=999\nquality=7\nangleMode=maybe\nrollRcRate=abc\n\0\1junk\nrollRate=12.5\n"
         .. "yawRcRate=150\nrollSrc=../x\nyawSrc=ch2\n"
-      H.files[BESTS] = "pillars=77\nx=notanumber\n\0junk\n"
-      settings, Save = fresh()
+      H.files[HIGHSCORE] = "pillars=77\nx=notanumber\n\0junk\n"
+      settings, Highscore = fresh()
     end)
 
     it("ignores out-of-range values", function()
@@ -102,7 +105,7 @@ describe("save", function()
       assert.equal("ail", settings.rollSrc)
     end)
     it("keeps only numeric bests", function()
-      assert.same({ pillars = 77 }, Save.bests)
+      assert.same({ pillars = 77 }, Highscore.byMap)
     end)
   end)
 end)

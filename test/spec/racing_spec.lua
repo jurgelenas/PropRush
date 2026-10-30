@@ -13,14 +13,14 @@ local Quad = assert(loadfile(SRC .. "physics/quad.lua"))(assert(loadfile(SRC .. 
 local Map = assert(loadfile(SRC .. "maps/gates.lua"))(Ground, Scene, Gap, R, function(name, ...)
   return assert(loadfile(SRC .. name .. ".lua"))(...)
 end)
-local save = assert(loadfile(SRC .. "config/save.lua"))({
+local highscore = assert(loadfile(SRC .. "config/highscore.lua"))({
   write = function()
     return true
   end,
-}, {})
+})
 local gates = Map.gates
 
-local r = Racing.new(Map, nil, save, "gates")
+local r = Racing.new(Map, nil, highscore, "gates")
 local p = { px = 0, py = 1.5, pz = 0 }
 
 -- Frames of dt seconds standing still at x, y, z, the first moving there from the last
@@ -36,13 +36,14 @@ end
 -- Through gate i's opening, off its centre by du sideways, taking a frame on each side
 local function pass(i, du)
   local g = gates[i]
-  local x, z = g.cx, g.cz
-  if g.axis == 3 then
-    at(x + (du or 0), g.cy, z - 1)
-    at(x + (du or 0), g.cy, z + 1)
+  -- cx, cz; axis; cy
+  local x, z = g[9], g[11]
+  if g[1] == 3 then
+    at(x + (du or 0), g[10], z - 1)
+    at(x + (du or 0), g[10], z + 1)
   else
-    at(x - 1, g.cy, z + (du or 0))
-    at(x + 1, g.cy, z + (du or 0))
+    at(x - 1, g[10], z + (du or 0))
+    at(x + 1, g[10], z + (du or 0))
   end
 end
 
@@ -65,7 +66,7 @@ local function fly(x, y, z, vx, vz, t)
   q:reset(x, y, z, 0)
   q.armed = true
   q.vx, q.vz = vx, vz
-  r = Racing.new(Map, nil, save, "gates")
+  r = Racing.new(Map, nil, highscore, "gates")
   for _ = 1, t / 0.05 do
     local fx, fy, fz = q.px, q.py, q.pz
     for _ = 1, 5 do
@@ -124,7 +125,7 @@ describe("racing", function()
       pass(1)
       assert.near(t + 0.1, r.last, 1e-6, state())
       assert.equal(r.last, r.best, state())
-      assert.equal(math.floor((t + 0.1) * 100 + 0.5), save.bests.gates, state())
+      assert.equal(math.floor((t + 0.1) * 100 + 0.5), highscore.byMap.gates, state())
       assert.equal(string.format("LAP 1 %.2fS", t + 0.1), r.note, state())
       assert.matches("^2/6 ", r.goal, state())
     end)
@@ -143,7 +144,7 @@ describe("racing", function()
       pass(1)
       assert.near(0.6, r.best, 1e-6, state())
       assert.is_true(r.last > 5, state())
-      assert.equal(60, save.bests.gates, state())
+      assert.equal(60, highscore.byMap.gates, state())
     end)
     it("drops the lap time after 2 s", function()
       at(0, 1.5, 0, 40)

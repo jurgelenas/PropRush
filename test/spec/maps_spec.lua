@@ -42,7 +42,8 @@ describe("maps", function()
         it("leaves each opening's marker centre clear", function()
           assert.is_true(#Map.gates > 1)
           for i, g in ipairs(Map.gates) do
-            assert.is_falsy(Map.collides(g.cx, g.cy, g.cz), "opening " .. i)
+            -- cx, cy, cz
+            assert.is_falsy(Map.collides(g[9], g[10], g[11]), "opening " .. i)
           end
         end)
       end
@@ -50,15 +51,17 @@ describe("maps", function()
       if Map.gaps then
         it("leaves each gap's centre clear", function()
           for _, g in ipairs(Map.gaps) do
-            -- A gap spans u0..u1 and v0..v1 in its plane at; axis 1, 2, 3: the x, y, z plane
-            local u, v = (g.u0 + g.u1) / 2, (g.v0 + g.v1) / 2
-            local x, y, z = u, v, g.at
-            if g.axis == 1 then
-              x, y, z = g.at, u, v
-            elseif g.axis == 2 then
-              x, y, z = u, g.at, v
+            -- A gap spans u0..u1 ([3], [4]) and v0..v1 ([5], [6]) in its plane at ([2]); axis ([1]) 1, 2, 3: the
+            -- x, y, z plane
+            local u, v = (g[3] + g[4]) / 2, (g[5] + g[6]) / 2
+            local x, y, z = u, v, g[2]
+            if g[1] == 1 then
+              x, y, z = g[2], u, v
+            elseif g[1] == 2 then
+              x, y, z = u, g[2], v
             end
-            assert.is_falsy(Map.collides(x, y, z), g.name)
+            -- name
+            assert.is_falsy(Map.collides(x, y, z), g[7])
           end
         end)
       end

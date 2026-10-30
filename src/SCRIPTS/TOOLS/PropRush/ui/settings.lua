@@ -3,7 +3,9 @@
 
 local app = ...
 
-local gfx, List, Save, settings, stickRate, input = app.gfx, app.list, app.save, app.settings, app.rates, app.input
+local gfx, settings, stickRate, input = app.gfx, app.settings, app.rates, app.input
+local List = app.load("ui/list", gfx)
+local Prefs = app.load("config/prefs", app.storage, settings)
 local Sound = app.sound
 
 local ROW_H = 8
@@ -26,7 +28,7 @@ local function sourcesOf(item)
   return axisList
 end
 
-local TOP = { items = app.load("config/items"), title = "SETTINGS" }
+local TOP = { items = app.load("config/items", app.load), title = "SETTINGS" }
 -- Current page: items and title; selection, scroll position and the page it was opened from
 local page, editing
 
@@ -152,7 +154,7 @@ function Settings.run(event)
     if page.parent then
       page = page.parent
     else
-      Save.write(TOP.items)
+      Prefs.write(TOP.items)
       return "menu"
     end
   elseif event == EVT_VIRTUAL_ENTER then

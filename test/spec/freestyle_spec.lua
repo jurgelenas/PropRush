@@ -9,11 +9,11 @@ local R = assert(loadfile(SRC .. "gfx/render3d.lua"))()
 local Scene = assert(loadfile(SRC .. "world/scene.lua"))(R)
 local Gap = assert(loadfile(SRC .. "world/gap.lua"))()
 local Freestyle = assert(loadfile(SRC .. "modes/freestyle.lua"))(Gap)
-local save = assert(loadfile(SRC .. "config/save.lua"))({
+local highscore = assert(loadfile(SRC .. "config/highscore.lua"))({
   write = function()
     return true
   end,
-}, {})
+})
 
 -- A wall across z = 20 with a 4 x 3 m window at x -2..2, y 2..5, and a long wall along x = 30
 local scene = Scene.new()
@@ -65,7 +65,7 @@ local function start(y, v, x, z)
   q:reset(x or 0, y, z or 0, 0)
   q.armed = true
   q.vz = v or 0
-  t = Freestyle.new(map, sound, save, "test")
+  t = Freestyle.new(map, sound, highscore, "test")
   notes, cues = {}, {}
 end
 
@@ -302,7 +302,7 @@ describe("tricks", function()
       fly(0.3)
       t:finish()
       assert.equal("NEW BEST 10", t.note, state())
-      assert.equal(10, save.bests.test, state())
+      assert.equal(10, highscore.byMap.test, state())
       assert.is_true(cued("cue best"), state())
     end)
     it("passing it is cued", function()
@@ -317,7 +317,7 @@ describe("tricks", function()
       fly(0.3)
       t:finish()
       assert.equal("PTS 10", t.note, state())
-      assert.equal(10, save.bests.test, state())
+      assert.equal(10, highscore.byMap.test, state())
       assert.is_false(cued("cue record"), state())
     end)
   end)

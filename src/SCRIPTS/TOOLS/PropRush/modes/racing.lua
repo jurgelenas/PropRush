@@ -14,10 +14,10 @@ local LAP_SHOW = 2
 local Racing = {}
 Racing.__index = Racing
 
--- map.gates: Course.addGate openings in course order; sound: platform/sound, optional; save: config/save, id: the
+-- map.gates: Course.addGate openings in course order; sound: platform/sound, optional; highscore: config/highscore, id: the
 -- map's key there
-function Racing.new(map, sound, save, id)
-  local r = setmetatable({ gates = map.gates, sound = sound, save = save, id = id }, Racing)
+function Racing.new(map, sound, highscore, id)
+  local r = setmetatable({ gates = map.gates, sound = sound, highscore = highscore, id = id }, Racing)
   r:reset()
   return r
 end
@@ -52,7 +52,7 @@ function Racing:update(dt, q, ox, oy, oz)
         self.lapNote = format("LAP %d %.2fS", self.lap, t)
         self.show = LAP_SHOW
         -- Lap times are kept in hundredths, lowest best
-        local newBest = self.save.record(self.id, floor(t * 100 + 0.5), true)
+        local newBest = self.highscore.record(self.id, floor(t * 100 + 0.5), true)
         if newBest then
           self.newBest = true
         end
@@ -72,7 +72,8 @@ function Racing:update(dt, q, ox, oy, oz)
 
   -- Strings are rebuilt only when the shown number changes: the distance about every other frame, the clock
   -- every other
-  local dx, dy, dz = g.cx - px, g.cy - py, g.cz - pz
+  -- cx, cy, cz
+  local dx, dy, dz = g[9] - px, g[10] - py, g[11] - pz
   local d = floor(sqrt(dx * dx + dy * dy + dz * dz) + 0.5)
   local v = self.next * 10000 + d
   if v ~= self.goalVal then
@@ -139,18 +140,21 @@ local function sideways(gfx, x, y, dir, bold)
   end
 end
 
--- Gate g's marker: a chevron over its top, or for a way round (g.round) an arrow pointing back in at the frame as
+-- Gate g's marker: a chevron over its top, or for a way round an arrow pointing back in at the frame as
 -- the screen shows it, the way to turn. Returns whether it was on screen, and its camera-space x.
 local function marker(R, gfx, g, bold)
-  local sx, sy, x = onScreen(R, gfx, g.cx, g.top, g.cz)
+  -- cx, top, cz
+  local cx, top, cz = g[9], g[12], g[11]
+  local sx, sy, x = onScreen(R, gfx, cx, top, cz)
   if not sx then
     return false, x
   end
-  local round = g.round
+  -- round
+  local round = g[14]
   if round then
     -- A metre further out along the frame: x for a frame across z (axis 3), else z
-    local ox, oz = g.axis == 3 and round or 0, g.axis == 3 and 0 or round
-    local tx = onScreen(R, gfx, g.cx + ox, g.top, g.cz + oz)
+    local ox, oz = g[1] == 3 and round or 0, g[1] == 3 and 0 or round
+    local tx = onScreen(R, gfx, cx + ox, top, cz + oz)
     local dir = -round
     if tx then
       dir = tx < sx and 1 or -1
@@ -170,12 +174,13 @@ function Racing:draw(R, gfx)
   local gates = self.gates
   local g = gates[self.next]
   local after = gates[self.next % #gates + 1]
-  if after.round then
+  -- round; piece
+  if after[14] then
     marker(R, gfx, after, false)
-  elseif g.piece and after.piece == g.piece then
-    -- Not while the one after is the nearer: from that side it would read as the way in
+  elseif g[13] and after[13] == g[13] then
+    -- Not while the one after is the nearer: from that side it would read as the way in. [9..11]: cx, cy, cz
     local ox, oy, oz = R.cameraPos()
-    local ax, ay, az, gx, gy, gz = after.cx - ox, after.cy - oy, after.cz - oz, g.cx - ox, g.cy - oy, g.cz - oz
+    local ax, ay, az, gx, gy, gz = after[9] - ox, after[10] - oy, after[11] - oz, g[9] - ox, g[10] - oy, g[11] - oz
     if ax * ax + ay * ay + az * az > gx * gx + gy * gy + gz * gz then
       marker(R, gfx, after, false)
     end

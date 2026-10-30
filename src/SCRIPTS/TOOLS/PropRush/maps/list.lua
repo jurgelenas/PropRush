@@ -37,6 +37,12 @@ return {
     info = { "Downtown", "towers and", "a skybridge" },
   },
   {
+    id = "farm",
+    name = "FARM",
+    mode = "freestyle",
+    info = { "Farmhouse,", "pines and", "a paddock" },
+  },
+  {
     id = "pillars",
     name = "PILLARS",
     mode = "freestyle",

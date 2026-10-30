@@ -1,6 +1,7 @@
 local app = ...
 
-local gfx, List = app.gfx, app.list
+local gfx = app.gfx
+local List = app.load("ui/list", gfx)
 
 local sin, cos, pi = math.sin, math.cos, math.pi
 
@@ -85,10 +86,12 @@ local ITEMS = {
   { label = "SETTINGS", icon = gear, info = { "Camera, rates", "and controls" } },
 }
 
+-- The catalogue lives with the menus only: flight reads the id and mode of the entry it is handed and keeps none of it
+local catalogue = app.load("maps/list")
 for _, item in ipairs(ITEMS) do
   if item.mode then
     local maps = {}
-    for _, m in ipairs(app.maps) do
+    for _, m in ipairs(catalogue) do
       if m.mode == item.mode then
         maps[#maps + 1] = m
       end
@@ -107,7 +110,7 @@ local SPLIT = 52
 -- Settings changed in the pause menu, saved here with flight out of memory
 if app.settingsChanged then
   app.settingsChanged = nil
-  app.save.write(app.load("config/items"))
+  app.load("config/prefs", app.storage, app.settings).write(app.load("config/items", app.load))
 end
 
 -- Kept in app: the menu is reloaded each time it is opened
