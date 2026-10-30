@@ -42,7 +42,7 @@ controls[#controls + 1] = { key = "armRev", label = "ARM REV", choices = { true,
 -- An item with a page opens it as a sub-page
 local items = {
   { key = "camAngle", label = "CAM ANGLE", min = 0, max = 70, step = 1 },
-  { key = "fov", label = "FOV", min = 60, max = 150, step = 5 },
+  { key = "fov", label = "FOV", min = 60, max = 150, step = 1 },
   { key = "quality", label = "QUALITY", choices = { 1, 2, 3 }, labels = { "LOW", "MED", "HIGH" } },
   { key = "angleMode", label = "MODE", choices = { false, true }, labels = { "ACRO", "ANGLE" } },
   { key = "batterySim", label = "BATTERY", choices = { true, false }, labels = ON_OFF },
