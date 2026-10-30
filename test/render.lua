@@ -59,8 +59,9 @@ local MAPS = {
 
 local q = Quad.new()
 local Racing = load("modes/racing", Gap)
-for _, id in ipairs({ "pillars", "bando", "gates" }) do
-  local Map = load("maps/" .. id, Ground, Scene, Gap, R, load)
+for _, path in ipairs({ "freestyle/pillars", "freestyle/bando", "racing/gates" }) do
+  local id = path:match("[^/]+$")
+  local Map = load("maps/" .. path, Ground, Scene, Gap, R, load)
   local race = Map.gates and Racing.new(Map)
   for _, p in ipairs(MAPS[id]) do
     q:reset(p[2], p[3], p[4], p[5])

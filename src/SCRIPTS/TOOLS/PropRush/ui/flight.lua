@@ -68,7 +68,7 @@ local Flight = {}
 -- entry: the map's catalogue entry
 function Flight.enter(entry)
   Map = nil
-  Map = app.load("maps/" .. entry.id, Ground, Scene, Gap, R, app.load)
+  Map = app.load("maps/" .. entry.mode .. "/" .. entry.id, Ground, Scene, Gap, R, app.load)
   mode = app.load("modes/" .. entry.mode, Gap).new(Map, Sound, app.highscore, entry.id)
   R.setView(0, 0, gfx.W, gfx.H, settings.fov, settings.camAngle)
   respawn()
