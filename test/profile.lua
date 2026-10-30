@@ -53,7 +53,7 @@ local POSES = {
 }
 local sticks = { ail = 0, ele = 0, thr = 0, rud = 0 }
 local settings = load("config/settings")
-for _, path in ipairs({ "freestyle/pillars", "freestyle/bando", "racing/gates" }) do
+for _, path in ipairs({ "freestyle/farm", "freestyle/bando", "racing/field" }) do
   local id = path:match("[^/]+$")
   Map = load("maps/" .. path, Ground, Scene, Gap, R, load)
   drawBoxes = Map.scene.draw

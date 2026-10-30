@@ -50,9 +50,4 @@ return {
     name = "OLD MILL",
     info = { "Windmill,", "a canal and", "a lift bridge" },
   },
-  {
-    id = "pillars",
-    name = "PILLARS",
-    info = { "Pillar ring", "and two", "buildings" },
-  },
 }

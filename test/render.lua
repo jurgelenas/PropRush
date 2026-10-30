@@ -19,18 +19,18 @@ R.setView(0, 0, LCD_W, LCD_H, settings.fov, settings.camAngle)
 
 -- Per map: name, x, y, z, heading, pitchUp(rad), rollRight(rad)
 local MAPS = {
-  pillars = {
-    { "ground", 0, 0.1, 0, 0, 0, 0 },
-    { "lowfwd", 0, 3, 10, 0, -0.7, 0 },
-    { "high", 0, 20, 0, 0, -0.9, 0 },
-    { "bank", 0, 6, 20, 20, -0.6, 0.6 },
-    { "steep", 0, 60, 0, 0, -1.0, 0.7 },
+  farm = {
+    { "ground", 2, 0.1, -50, 0, 0, 0 },
+    { "lowfwd", 2, 3, -40, 0, -0.7, 0 },
+    { "high", 2, 20, -50, 0, -0.9, 0 },
+    { "bank", 2, 6, -30, 20, -0.6, 0.6 },
+    { "steep", 2, 60, -50, 0, -1.0, 0.7 },
     -- Looking down at the launch pad from behind it
-    { "pad", 0, 8, -12, 0, -1.4, 0 },
-    -- Out of range: 250, 330 and 410 m from the map centre
-    { "fade", 0, 5, 310, 0, -0.6, 0 },
-    { "breakup", 0, 5, 390, 0, -0.6, 0 },
-    { "lost", 0, 5, 470, 0, -0.6, 0 },
+    { "pad", 2, 8, -62, 0, -1.4, 0 },
+    -- Out of range: 125, 155 and 190 m from the map centre
+    { "fade", 15, 5, 125, 0, -0.6, 0 },
+    { "breakup", 15, 5, 155, 0, -0.6, 0 },
+    { "lost", 15, 5, 190, 0, -0.6, 0 },
   },
   bando = {
     { "ground", 0, 0.1, 0, 0, 0, 0 },
@@ -46,20 +46,20 @@ local MAPS = {
     { "chimney", 26, 40, 78, 30, -1.9, 0 },
     { "west", -60, 6, 50, 90, -0.7, 0 },
   },
-  gates = {
-    { "ground", 0, 0.1, 0, 0, 0, 0 },
-    { "start", 0, 1.7, 2, 0, -0.5, 0 },
+  field = {
+    { "ground", 0, 0.1, -10, 0, 0, 0 },
+    { "start", 0, 1.7, -8, 0, -0.5, 0 },
     -- Past the start: gate 2 ahead, then turned away from it (the marker's side arrow)
-    { "gate2", 2, 3, 25, 10, -0.6, 0 },
-    { "away", 2, 3, 25, 100, -0.6, 0 },
-    { "high", -10, 25, -10, 40, -0.9, 0 },
-    { "gate4", 50, 7, 75, 160, -0.6, 0.4 },
+    { "gate2", 1, 2, 20, 5, -0.6, 0 },
+    { "away", 1, 2, 20, 100, -0.6, 0 },
+    { "high", -10, 25, -20, 40, -0.9, 0 },
+    { "high2", 60, 9, 80, 0, -0.6, 0.4 },
   },
 }
 
 local q = Quad.new()
 local Racing = load("modes/racing", Gap)
-for _, path in ipairs({ "freestyle/pillars", "freestyle/bando", "racing/gates" }) do
+for _, path in ipairs({ "freestyle/farm", "freestyle/bando", "racing/field" }) do
   local id = path:match("[^/]+$")
   local Map = load("maps/" .. path, Ground, Scene, Gap, R, load)
   local race = Map.gates and Racing.new(Map)

@@ -1,4 +1,4 @@
--- Racing: gates in order on the GATES map, the lap clock, best laps, and flying through a gate for real.
+-- Racing: gates in order on a six-gate loop, the lap clock, best laps, and flying through a gate for real.
 
 local H = dofile("test/harness.lua")
 H.install(128, 64)
@@ -10,17 +10,35 @@ local Scene = assert(loadfile(SRC .. "world/scene.lua"))(R)
 local Gap = assert(loadfile(SRC .. "world/gap.lua"))()
 local Racing = assert(loadfile(SRC .. "modes/racing.lua"))(Gap)
 local Quad = assert(loadfile(SRC .. "physics/quad.lua"))(assert(loadfile(SRC .. "physics/rates.lua"))())
-local Map = assert(loadfile(SRC .. "maps/racing/gates.lua"))(Ground, Scene, Gap, R, function(name, ...)
-  return assert(loadfile(SRC .. name .. ".lua"))(...)
-end)
+local Course = assert(loadfile(SRC .. "world/course.lua"))(R, Scene, Gap)
+-- Six gates 3 x 2.4 m round open fields from a spawn at the origin: {x, z, bottom height, frame along x}
+local scene = Scene.new()
+local gates = {}
+-- stylua: ignore
+local COURSE = {
+  0, 12, 0.5, true,
+  8, 55, 2, true,
+  35, 80, 1, false,
+  60, 50, 5, true,
+  55, 10, 0.5, true,
+  25, -15, 1.5, false,
+}
+for i = 1, #COURSE, 4 do
+  gates[#gates + 1] = Course.addGate(scene, COURSE[i], COURSE[i + 1], 3, 2.4, COURSE[i + 2], COURSE[i + 3])
+end
+local Map = {
+  gates = gates,
+  collides = function(x, y, z)
+    return scene.collides(x, y, z)
+  end,
+}
 local highscore = assert(loadfile(SRC .. "config/highscore.lua"))({
   write = function()
     return true
   end,
 })
-local gates = Map.gates
 
-local r = Racing.new(Map, nil, highscore, "gates")
+local r = Racing.new(Map, nil, highscore, "loop")
 local p = { px = 0, py = 1.5, pz = 0 }
 
 -- Frames of dt seconds standing still at x, y, z, the first moving there from the last
@@ -67,7 +85,7 @@ local function fly(x, y, z, vx, vz, t)
   q:reset(x, y, z, 0)
   q.armed = true
   q.vx, q.vz = vx, vz
-  r = Racing.new(Map, nil, highscore, "gates")
+  r = Racing.new(Map, nil, highscore, "loop")
   for _ = 1, t / 0.05 do
     local fx, fy, fz = q.px, q.py, q.pz
     for _ = 1, 5 do
@@ -144,7 +162,7 @@ describe("racing", function()
       pass(1)
       assert.near(t + 0.1, r.last, 1e-6, state())
       assert.equal(r.last, r.best, state())
-      assert.equal(math.floor((t + 0.1) * 100 + 0.5), highscore.byMap.gates, state())
+      assert.equal(math.floor((t + 0.1) * 100 + 0.5), highscore.byMap.loop, state())
       assert.equal(string.format("LAP 1 %.2fS", t + 0.1), r.note, state())
       assert.matches("^2/6 ", r.goal, state())
     end)
@@ -163,7 +181,7 @@ describe("racing", function()
       pass(1)
       assert.near(0.6, r.best, 1e-6, state())
       assert.is_true(r.last > 5, state())
-      assert.equal(60, highscore.byMap.gates, state())
+      assert.equal(60, highscore.byMap.loop, state())
     end)
     it("drops the lap time after 2 s", function()
       at(0, 1.5, 0, 40)

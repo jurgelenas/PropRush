@@ -50,9 +50,4 @@ return {
     name = "RAZOR",
     info = { "Tight, quick", "left-right", "gate flicks" },
   },
-  {
-    id = "gates",
-    name = "GATES",
-    info = { "Six gates", "round a", "tower" },
-  },
 }
