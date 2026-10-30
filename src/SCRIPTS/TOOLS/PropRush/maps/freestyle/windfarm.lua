@@ -1,4 +1,4 @@
--- Wind Farm: three turbines turning on open hills, one of them low, a power line on lattice pylons running down to a
+-- Wind Farm: two turbines turning on open hills, one of them low, a power line on lattice pylons running down to a
 -- substation, a met mast and an open hay barn.
 
 local Ground, Scene, Gap, R, load = ...
@@ -25,8 +25,7 @@ local function turbine(x, z, h, l, phase)
   gaps[#gaps + 1] = Gap.new("ROTOR", 20, x - u, h + 1.5, zr, x + u, h + v, zr)
 end
 turbine(-30, 55, 24, 10, 0)
-turbine(8, 78, 24, 10, math.pi / 3)
-turbine(42, 50, 14, 8, 0)
+turbine(42, 50, 14, 8, math.pi / 3)
 
 -- Power line along x = -65 from the north down to the substation, under the lines between the pylons
 local LX = -65

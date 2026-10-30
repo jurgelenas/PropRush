@@ -185,25 +185,28 @@ local TIPS = { 0, PEAK, 0, -ARM, ARMS, 0, ARM, ARMS, 0, -ARM, ARMS - DROP, 0, AR
 for i = 1, 5 do
   JX[12 + i], JY[12 + i], JZ[12 + i] = TIPS[3 * i - 2], TIPS[3 * i - 1], TIPS[3 * i]
 end
--- Legs, rings, cross bracing, peak, arms, insulators
+-- Legs, peak, arms, insulators: the outline, all drawn beyond DETAIL_DIST; then rings and cross bracing
 -- stylua: ignore
 local BARS = {
   1, 5, 2, 6, 3, 7, 4, 8, 5, 9, 6, 10, 7, 11, 8, 12,
-  5, 6, 6, 7, 7, 8, 8, 5, 9, 10, 10, 11, 11, 12, 12, 9,
-  5, 10, 6, 9, 6, 11, 7, 10, 7, 12, 8, 11, 8, 9, 5, 12,
   9, 13, 10, 13, 11, 13, 12, 13,
   9, 14, 12, 14, 10, 15, 11, 15,
   14, 16, 15, 17,
+  5, 6, 6, 7, 7, 8, 8, 5, 9, 10, 10, 11, 11, 12, 12, 9,
+  5, 10, 6, 9, 6, 11, 7, 10, 7, 12, 8, 11, 8, 9, 5, 12,
 }
+local OUTLINE, DETAIL_DIST = 18, 40
 -- The joints placed at a pylon
 local PX, PY, PZ = {}, {}, {}
 
+-- p[11]: squared ground distance from the camera
 local function drawPylon(p, fogged)
   local x, z = p[12], p[13]
   for i = 1, #JX do
     PX[i], PY[i], PZ[i] = JX[i] + x, JY[i], JZ[i] + z
   end
-  R.frame(PX, PY, PZ, BARS, DRAW_HALF, #BARS // 2, fogged and FAR_EDGE or EDGE)
+  local n = p[11] < DETAIL_DIST * DETAIL_DIST and #BARS // 2 or OUTLINE
+  R.frame(PX, PY, PZ, BARS, DRAW_HALF, n, fogged and FAR_EDGE or EDGE)
 end
 
 -- Its half width at height y on the legs or the braced part

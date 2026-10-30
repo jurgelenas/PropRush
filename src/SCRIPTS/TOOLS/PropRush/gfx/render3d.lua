@@ -262,12 +262,19 @@ local function bar(ax, ay, az, bx, by, bz, half, edge, fill)
 end
 
 -- Frame of square bars 2 * half thick between joints: the joints' world positions as parallel arrays x, y, z, the
--- bars as a flat list of joint index pairs, the first n drawn. Each joint is transformed once; bars are drawn far to
--- near, as lines, outlines or filled ribbons by their width on screen. fill: shade inside wide bars, nil for outlines
--- only.
+-- bars as a flat list of joint index pairs, the first n drawn. Each joint is transformed once; bars are drawn as lines,
+-- outlines or filled ribbons by their width on screen. fill: shade inside wide bars, drawn far to near; nil for
+-- outlines only, in any order.
 function R.frame(x, y, z, bars, half, n, edge, fill)
   for i = 1, #x do
     JX[i], JY[i], JZ[i] = toCamera(x[i], y[i], z[i])
+  end
+  if not fill then
+    for i = 1, n do
+      local a, b = bars[2 * i - 1], bars[2 * i]
+      bar(JX[a], JY[a], JZ[a], JX[b], JY[b], JZ[b], half, edge)
+    end
+    return
   end
   for i = 1, n do
     local a, b = bars[2 * i - 1], bars[2 * i]
