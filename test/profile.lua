@@ -53,8 +53,9 @@ local POSES = {
 }
 local sticks = { ail = 0, ele = 0, thr = 0, rud = 0 }
 local settings = load("config/settings")
-for _, id in ipairs({ "pillars", "bando", "gates" }) do
-  Map = load("maps/" .. id, Ground, Scene, Gap, R, load)
+for _, path in ipairs({ "freestyle/pillars", "freestyle/bando", "racing/gates" }) do
+  local id = path:match("[^/]+$")
+  Map = load("maps/" .. path, Ground, Scene, Gap, R, load)
   drawBoxes = Map.scene.draw
   print("PROF map " .. id)
   for _, p in ipairs(POSES) do

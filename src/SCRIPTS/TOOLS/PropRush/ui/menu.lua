@@ -97,15 +97,12 @@ local ITEMS = {
   { label = "CREDITS", screen = "credits", icon = star, info = { "About", "PropRush" } },
 }
 
--- The catalogue lives with the menus only: flight reads the id and mode of the entry it is handed and keeps none of it
-local catalogue = app.load("maps/list")
+-- The lists live with the menus only: flight reads the id and mode of the entry it is handed and keeps none of it
 for _, item in ipairs(ITEMS) do
   if item.mode then
-    local maps = {}
-    for _, m in ipairs(catalogue) do
-      if m.mode == item.mode then
-        maps[#maps + 1] = m
-      end
+    local maps = app.load("maps/" .. item.mode .. "/list")
+    for _, m in ipairs(maps) do
+      m.mode = item.mode
     end
     item.maps = maps
     item.status = #maps == 0 and "No maps yet" or (#maps == 1 and "1 Map" or string.format("%d Maps", #maps))
