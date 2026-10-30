@@ -81,7 +81,7 @@ build:
 	mkdir -p $(STAGE_DIR)/$(TOOL)
 	cp -r $(SRC_DIR)/$(TOOL)/. $(STAGE_DIR)/$(TOOL)/
 	find $(STAGE_DIR) -name '*.luac' -delete
-	rm -f $(STAGE_DIR)/$(TOOL)/save.txt
+	find $(STAGE_DIR) -name '*.txt' -delete
 	printf 'return "%s"\n' '$(VERSION)' > $(STAGE_DIR)/$(TOOL)/version.lua
 	find $(STAGE_DIR) -name '*.lua' | while read -r f; do $(LUAC) -s -o "$${f}c" "$$f" || exit 1; done
 	cd $(STAGE_DIR) && zip -q -r ../$(ZIP_NAME).zip SCRIPTS
