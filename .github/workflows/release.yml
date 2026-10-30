@@ -37,7 +37,7 @@ jobs:
         run: make test-host
 
       - name: Build
-        run: make build VERSION="${GITHUB_REF_NAME#v}" ZIP_NAME="fpv-sim-$GITHUB_REF_NAME"
+        run: make build VERSION="${GITHUB_REF_NAME#v}" ZIP_NAME="proprush-$GITHUB_REF_NAME"
 
       - name: Publish release
         env:
@@ -51,9 +51,9 @@ jobs:
           notes=$(cat <<EOF2
           | Radio | Download |
           |-------|----------|
-          | EdgeTX 2.12+, black-and-white screen | \`fpv-sim-$GITHUB_REF_NAME.zip\` |
+          | EdgeTX 2.12+, black-and-white screen | \`proprush-$GITHUB_REF_NAME.zip\` |
 
-          Extract the zip onto the SD card root, then open **FPV Sim** from the Tools menu.
+          Extract the zip onto the SD card root, then open **PropRush** from the Tools menu.
           EOF2
           )
           # --notes is placed before the generated notes.

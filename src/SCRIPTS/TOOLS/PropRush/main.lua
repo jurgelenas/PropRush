@@ -1,6 +1,6 @@
--- TNS|FPV Sim|TNE
+-- TNS|PropRush|TNE
 
-local BASE = "/SCRIPTS/TOOLS/FPVSim/"
+local BASE = "/SCRIPTS/TOOLS/PropRush/"
 
 -- Collects before each load: first-run compiles otherwise run B&W radios out of memory
 local function load(name, ...)

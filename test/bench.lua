@@ -3,7 +3,7 @@
 local H = dofile("test/harness.lua")
 H.install(tonumber(BENCH_W) or 128, tonumber(BENCH_H) or 64)
 
-local tool = assert(loadfile("src/SCRIPTS/TOOLS/FPVSim/main.lua"))()
+local tool = assert(loadfile("src/SCRIPTS/TOOLS/PropRush/main.lua"))()
 tool.init()
 
 local FRAME = 5 -- ticks of 10 ms

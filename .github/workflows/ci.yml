@@ -40,11 +40,11 @@ jobs:
         run: |
           version="${SHA::7}"
           if [ "$EVENT" = pull_request ]; then
-            zip_name="fpv-sim-pr${PR}-${version}"
+            zip_name="proprush-pr${PR}-${version}"
           elif [ "$GITHUB_REF" = refs/heads/main ]; then
-            zip_name=fpv-sim-nightly
+            zip_name=proprush-nightly
           else
-            zip_name="fpv-sim-${GITHUB_REF_NAME//\//-}-${version}"
+            zip_name="proprush-${GITHUB_REF_NAME//\//-}-${version}"
           fi
           echo "VERSION=$version" >> "$GITHUB_ENV"
           echo "ZIP_NAME=$zip_name" >> "$GITHUB_ENV"
@@ -71,7 +71,7 @@ jobs:
     steps:
       - uses: actions/download-artifact@v4
         with:
-          name: fpv-sim-nightly
+          name: proprush-nightly
           path: dist
 
       - name: Publish release
@@ -87,4 +87,4 @@ jobs:
             --latest=false \
             --notes "**Development build, not a stable release.** Built automatically from the latest \`main\` commit ($GITHUB_SHA). It may contain unfinished or untested changes; for normal use, install the [latest release](https://github.com/$GITHUB_REPOSITORY/releases/latest).
 
-          The tool shows version \`${GITHUB_SHA::7}\`. To install, extract \`fpv-sim-nightly.zip\` onto the SD card root. Needs EdgeTX 2.12 or later on a black-and-white radio."
+          The tool shows version \`${GITHUB_SHA::7}\`. To install, extract \`proprush-nightly.zip\` onto the SD card root. Needs EdgeTX 2.12 or later on a black-and-white radio."

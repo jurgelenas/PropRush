@@ -26,7 +26,7 @@ jobs:
           HEAD_REPO: ${{ github.event.workflow_run.head_repository.full_name }}
           HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
         run: |
-          marker='<!-- fpv-sim-build -->'
+          marker='<!-- proprush-build -->'
 
           pr=$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --limit 200 \
             --json number,headRefOid --jq ".[] | select(.headRefOid == \"$SHA\") | .number" | head -n 1)
@@ -37,7 +37,7 @@ jobs:
 
           if [ "$CONCLUSION" = success ]; then
             artifact=$(gh api "repos/$GITHUB_REPOSITORY/actions/runs/$RUN_ID/artifacts" \
-              --jq '.artifacts[] | select(.name | startswith("fpv-sim-")) | "\(.id) \(.name)"' | head -n 1)
+              --jq '.artifacts[] | select(.name | startswith("proprush-")) | "\(.id) \(.name)"' | head -n 1)
             read -r artifact_id artifact_name <<< "$artifact"
             body="$marker
           ### Test build for ${SHA::7}

@@ -4,8 +4,8 @@
 
 local storage, settings = ...
 
-local PATH = "/SCRIPTS/TOOLS/FPVSim/save.txt"
-local BESTS = "/SCRIPTS/TOOLS/FPVSim/bests.txt"
+local PATH = "/SCRIPTS/TOOLS/PropRush/save.txt"
+local BESTS = "/SCRIPTS/TOOLS/PropRush/bests.txt"
 -- A best not written yet
 local dirty = false
 

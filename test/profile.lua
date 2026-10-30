@@ -5,7 +5,7 @@ local H = dofile("test/harness.lua")
 H.install(tonumber(BENCH_W) or 128, tonumber(BENCH_H) or 64)
 
 local function load(name, ...)
-  return assert(loadfile("src/SCRIPTS/TOOLS/FPVSim/" .. name .. ".lua"))(...)
+  return assert(loadfile("src/SCRIPTS/TOOLS/PropRush/" .. name .. ".lua"))(...)
 end
 local gfx = load("gfx/bw")
 local R = load("gfx/render3d")
