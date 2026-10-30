@@ -31,6 +31,12 @@ return {
     info = { "Ladder, cube", "and triple", "gate, tight" },
   },
   {
+    id = "windfarm",
+    name = "WIND FARM",
+    mode = "freestyle",
+    info = { "Turbines to", "fly through,", "pylons, lines" },
+  },
+  {
     id = "yard",
     name = "YARD",
     mode = "freestyle",
@@ -71,5 +77,11 @@ return {
     name = "PILLARS",
     mode = "freestyle",
     info = { "Pillar ring", "and two", "buildings" },
+  },
+  {
+    id = "trainyard",
+    name = "TRAINYARD",
+    mode = "freestyle",
+    info = { "A moving", "train, sheds", "and a bridge" },
   },
 }
