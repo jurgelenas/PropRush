@@ -7,6 +7,18 @@ return {
     info = { "Six gates", "round a", "tower" },
   },
   {
+    id = "slalom",
+    name = "SLALOM",
+    mode = "racing",
+    info = { "Flag lines", "woven left", "and right" },
+  },
+  {
+    id = "tech",
+    name = "TECH",
+    mode = "racing",
+    info = { "Ladder, cube", "and triple", "gate, tight" },
+  },
+  {
     id = "bando",
     name = "BANDO",
     mode = "freestyle",

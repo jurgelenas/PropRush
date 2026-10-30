@@ -213,8 +213,9 @@ end
 
 -- Frame joints in camera space, and the bars' midpoint depths and draw order
 local JX, JY, JZ, DEPTH, ORDER = {}, {}, {}, {}, {}
--- Bars narrower than LINE_PX on screen are a line, narrower than FILL_PX their two sides, else filled and outlined
-local LINE_PX, FILL_PX = 1.5, 3
+-- Bars narrower than FILL_PX on screen are their two sides, else filled and outlined. Only under LINE_PX wide (a gate
+-- bar about 40 m out) are they one line: the two sides keep a nearer bar a pixel or two bold, as a box's edges are.
+local LINE_PX, FILL_PX = 0.5, 3
 local RX, RY = { 0, 0, 0, 0 }, { 0, 0, 0, 0 }
 
 -- One bar between camera-space points, half its thickness wide either side, its ends extended by as much so bars
@@ -234,7 +235,7 @@ local function bar(ax, ay, az, bx, by, bz, half, edge, fill)
   local fa, fb = focal / az, focal / bz
   ax, ay, bx, by = cx + ax * fa, cy - ay * fa, cx + bx * fb, cy - by * fb
   local ha, hb = half * fa, half * fb
-  if ha < LINE_PX / 2 and hb < LINE_PX / 2 then
+  if ha + hb < LINE_PX then
     sink.line(ax, ay, bx, by, edge)
     return
   end
@@ -261,13 +262,13 @@ local function bar(ax, ay, az, bx, by, bz, half, edge, fill)
 end
 
 -- Frame of square bars 2 * half thick between joints: the joints' world positions as parallel arrays x, y, z, the
--- bars as a flat list of joint index pairs. Each joint is transformed once; bars are drawn far to near, as lines,
--- outlines or filled ribbons by their width on screen. fill: shade inside wide bars, nil for outlines only.
-function R.frame(x, y, z, bars, half, edge, fill)
+-- bars as a flat list of joint index pairs, the first n drawn. Each joint is transformed once; bars are drawn far to
+-- near, as lines, outlines or filled ribbons by their width on screen. fill: shade inside wide bars, nil for outlines
+-- only.
+function R.frame(x, y, z, bars, half, n, edge, fill)
   for i = 1, #x do
     JX[i], JY[i], JZ[i] = toCamera(x[i], y[i], z[i])
   end
-  local n = #bars // 2
   for i = 1, n do
     local a, b = bars[2 * i - 1], bars[2 * i]
     local d = JZ[a] + JZ[b]
