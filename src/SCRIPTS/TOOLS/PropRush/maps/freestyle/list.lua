@@ -41,13 +41,13 @@ return {
     info = { "Ship, crane,", "pier and a", "lighthouse" },
   },
   {
-    id = "pillars",
-    name = "PILLARS",
-    info = { "Pillar ring", "and two", "buildings" },
-  },
-  {
     id = "oldmill",
     name = "OLD MILL",
     info = { "Windmill,", "a canal and", "a lift bridge" },
+  },
+  {
+    id = "pillars",
+    name = "PILLARS",
+    info = { "Pillar ring", "and two", "buildings" },
   },
 }
