@@ -1,6 +1,11 @@
 -- Freestyle maps for the menus, so maps are only loaded when flown. id: module name in this folder.
 return {
   {
+    id = "drift",
+    name = "DRIFT",
+    info = { "Chase a car", "drifting on", "a circuit" },
+  },
+  {
     id = "windfarm",
     name = "WIND FARM",
     info = { "Turbines to", "fly through,", "pylons, lines" },
