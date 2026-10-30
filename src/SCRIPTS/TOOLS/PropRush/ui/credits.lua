@@ -8,7 +8,6 @@ local List = app.load("ui/list", gfx)
 local LINES = {
   "PROPRUSH " .. app.load("version"),
   "FPV drone simulator",
-  "for EdgeTX radios",
   "",
   "Licence: GPL-3.0",
   "github.com/jurgelenas/",
