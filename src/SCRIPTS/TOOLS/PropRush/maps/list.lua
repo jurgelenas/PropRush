@@ -55,6 +55,12 @@ return {
     info = { "Building site,", "crane and", "containers" },
   },
   {
+    id = "vibetown",
+    name = "VIBE TOWN",
+    mode = "freestyle",
+    info = { "Water tower,", "billboard and", "an overpass" },
+  },
+  {
     id = "pillars",
     name = "PILLARS",
     mode = "freestyle",
