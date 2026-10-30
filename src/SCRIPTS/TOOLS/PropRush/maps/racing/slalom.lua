@@ -1,5 +1,6 @@
 -- Slalom: three lines of flags woven left and right, flown north, south and north again: right at the top of the
--- first, left at the bottom of the second, then left back west over the top and a left hairpin into the start.
+-- first, left at the bottom of the second, then left back west over the top through two gates, south down the
+-- first line's far side through two more and a left hairpin round a flag into the start.
 
 local Ground, Scene, Gap, R, load = ...
 local Course = load("world/course", R, Scene, Gap)
@@ -29,15 +30,19 @@ end
 gate(0, 12, 0.5, true)
 -- Flown north out of the last hairpin, though the gate before lies north of it
 Course.dir(gates[1], 1)
-slalom(0, 1, 35, 75, 20)
+slalom(0, -1, 35, 75, 20)
 gate(12, 92, 1, false)
 gate(32, 76, 4, true)
-slalom(30, 1, 60, 30, -15)
+slalom(30, -1, 60, 30, -15)
 gate(45, 12, 0.5, false)
 slalom(60, 1, 40, 60, 20)
--- High, then back west over the top and south down the first line's far side
+-- High, then back west over the top, south down the first line's far side and left round the flag into the start
 gate(60, 92, 5, true)
+gate(34, 106, 2, false)
+gate(2, 106, 1, false)
 gate(-25, 70, 1, true)
+gate(-25, 38, 0.5, true)
+gates[#gates + 1] = Course.addFlag(scene, -10, -4, 0, -1)
 Map.gates = gates
 
 scene.addBox(15, 52, 3, 3, 14)
