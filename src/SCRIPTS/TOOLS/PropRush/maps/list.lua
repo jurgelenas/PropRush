@@ -19,6 +19,12 @@ return {
     info = { "Ladder, cube", "and triple", "gate, tight" },
   },
   {
+    id = "super8",
+    name = "SUPER 8",
+    mode = "racing",
+    info = { "Figure 8", "crossing in", "a cube" },
+  },
+  {
     id = "bando",
     name = "BANDO",
     mode = "freestyle",
