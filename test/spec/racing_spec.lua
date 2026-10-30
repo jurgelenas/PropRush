@@ -3,7 +3,7 @@
 local H = dofile("test/harness.lua")
 H.install(128, 64)
 
-local SRC = "src/SCRIPTS/TOOLS/FPVSim/"
+local SRC = "src/SCRIPTS/TOOLS/PropRush/"
 local R = assert(loadfile(SRC .. "gfx/render3d.lua"))()
 local Ground = assert(loadfile(SRC .. "world/ground.lua"))(R)
 local Scene = assert(loadfile(SRC .. "world/scene.lua"))(R)

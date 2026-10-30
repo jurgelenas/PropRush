@@ -1,6 +1,6 @@
 -- Rate curve against Betaflight Configurator's Max Vel figures. RC Rate, Rate and RC Expo in hundredths.
 
-local rate = assert(loadfile("src/SCRIPTS/TOOLS/FPVSim/physics/rates.lua"))()
+local rate = assert(loadfile("src/SCRIPTS/TOOLS/PropRush/physics/rates.lua"))()
 
 describe("rates", function()
   it("RC 1.00 Rate 0.50 Expo 0.00, full stick", function()

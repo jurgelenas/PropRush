@@ -4,7 +4,7 @@ local H = dofile("test/harness.lua")
 H.install(128, 64)
 
 local settings = { sound = 2, haptic = true }
-local Sound = assert(loadfile("src/SCRIPTS/TOOLS/FPVSim/platform/sound.lua"))(settings)
+local Sound = assert(loadfile("src/SCRIPTS/TOOLS/PropRush/platform/sound.lua"))(settings)
 
 local QUEUE, NOW, MOTOR = 0, PLAY_NOW, PLAY_BACKGROUND + PLAY_NOW
 

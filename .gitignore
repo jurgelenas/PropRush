@@ -2,5 +2,5 @@
 bin/
 dist/
 TODO.md
-src/SCRIPTS/TOOLS/FPVSim/save.txt
-src/SCRIPTS/TOOLS/FPVSim/bests.txt
+src/SCRIPTS/TOOLS/PropRush/save.txt
+src/SCRIPTS/TOOLS/PropRush/bests.txt

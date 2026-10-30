@@ -15,11 +15,11 @@ LUAC_DIR := bin/edgetx-luac
 LUAC := $(LUAC_DIR)/edgetx-luac
 LUAC_URL := https://github.com/EdgeTX/edgetx-luac-action/releases/download/v$(LUAC_VERSION)/edgetx-luac-v$(LUAC_VERSION)-linux-x64.tar.gz
 
-TOOL := SCRIPTS/TOOLS/FPVSim
+TOOL := SCRIPTS/TOOLS/PropRush
 DIST_DIR := dist
 STAGE_DIR := $(DIST_DIR)/sdcard
 VERSION ?= $(or $(shell git rev-parse HEAD 2>/dev/null | cut -c1-7),dev)
-ZIP_NAME ?= fpv-sim-$(VERSION)
+ZIP_NAME ?= proprush-$(VERSION)
 
 .PHONY: help install-tools install-stylua install-luals install-luac format format-check typecheck check test test-host build \
 	sync push
@@ -62,15 +62,15 @@ format-check:
 	$(STYLUA) --check $(SRC_DIR)
 
 typecheck:
-	$(LUALS) --check . --logpath=/tmp/fpv-sim-luals
+	$(LUALS) --check . --logpath=/tmp/proprush-luals
 
 check: format-check typecheck
 
 SIM := edgetx-cli dev simulator --radios-dir ../edgetx-firmware/radios --radio "RadioMaster Boxer" --headless \
-	--sdcard /tmp/fpv-sim-test-sd --timeout 120s
+	--sdcard /tmp/proprush-test-sd --timeout 120s
 
 test:
-	@mkdir -p /tmp/fpv-sim-test-sd
+	@mkdir -p /tmp/proprush-test-sd
 	@$(SIM) --script test/run.lua 2>&1 | grep -v -E '^[0-9]+ms: |^-[EW]- |^  [ℹ✓⏳] ' ; exit $${PIPESTATUS[0]}
 
 test-host:

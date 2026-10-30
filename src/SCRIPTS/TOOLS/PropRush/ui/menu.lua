@@ -52,7 +52,7 @@ function Menu.run(event)
   local W, H, FH = gfx.W, gfx.H, gfx.FH
   local split = W // 2
   gfx.clear()
-  List.title("FPV SIM")
+  List.title("PROPRUSH")
   for i = 1, #ITEMS do
     List.row(List.TOP + 1 + (i - 1) * ROW_H, ROW_H - 1, split - 2, ITEMS[i].label, i == app.menuSelected, true)
   end

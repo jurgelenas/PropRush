@@ -5,7 +5,7 @@ local H = dofile("test/harness.lua")
 H.install(128, 64)
 
 local function load(name, ...)
-  return assert(loadfile("src/SCRIPTS/TOOLS/FPVSim/" .. name .. ".lua"))(...)
+  return assert(loadfile("src/SCRIPTS/TOOLS/PropRush/" .. name .. ".lua"))(...)
 end
 
 describe("input", function()
