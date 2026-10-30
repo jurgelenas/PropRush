@@ -106,7 +106,8 @@ end
 
 -- Opening flown through for racing: g as Gap.new, plus the marker's anchor: centre cx, cy, cz ([9..11]) and top
 -- ([12]). piece ([13]): the frame when it has several openings, so racing previews the next when two of it follow
--- each other, else false. A way round (Course.around) adds [14], its side.
+-- each other, else false. A way round (Course.around) adds [14], its side; racing adds [15], the way through (see
+-- Course.dir).
 local function opening(g, cx, cy, cz, top, piece)
   g[9], g[10], g[11], g[12], g[13] = cx, cy, cz, top, piece or false
   return g
@@ -213,6 +214,13 @@ function Course.addFlag(scene, x, z, dx, dz)
   local ex, ez = x + dx * FLAG_REACH, z + dz * FLAG_REACH
   local g = Gap.new("FLAG", 0, math.min(x, ex), 0, math.min(z, ez), math.max(x, ex), FLAG_TOP, math.max(z, ez))
   return opening(g, x + dx * 1.5, 1.5, z + dz * 1.5, POLE_H)
+end
+
+-- Sets the way through opening g: 1 towards +x, +y or +z across its plane, -1 back. Racing works it out from the
+-- gate before unless set; returns g.
+function Course.dir(g, way)
+  g[15] = way
+  return g
 end
 
 -- Way round frame opening g to the next: crossing the frame's plane beyond its post on the side towards +u (side 1)

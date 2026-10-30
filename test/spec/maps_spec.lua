@@ -10,6 +10,16 @@ local Scene = assert(loadfile(SRC .. "world/scene.lua"))(R)
 local Gap = assert(loadfile(SRC .. "world/gap.lua"))()
 local Quad = assert(loadfile(SRC .. "physics/quad.lua"))(assert(loadfile(SRC .. "physics/rates.lua"))())
 local list = assert(loadfile(SRC .. "maps/list.lua"))()
+local Racing = assert(loadfile(SRC .. "modes/racing.lua"))(Gap)
+
+-- Each racing map's way through its gates in course order: N(orth) +z, S -z, E +x, W -x, U(p) +y, D(own) -y
+local WAYS = {
+  gates = "NNESSW",
+  slalom = "NNNNNESSSSW",
+  tech = "NNSNSNDSEWESW",
+  super8 = "NESWSE",
+}
+local WAY = { "WE", "DU", "SN" }
 
 -- As the tool's loader: a module by name under the tool's folder
 local function load(name, ...)
@@ -45,6 +55,16 @@ describe("maps", function()
             -- cx, cy, cz
             assert.is_falsy(Map.collides(g[9], g[10], g[11]), "opening " .. i)
           end
+        end)
+        it("goes through each opening its own way", function()
+          Racing.new(Map)
+          local ways = ""
+          for _, g in ipairs(Map.gates) do
+            -- axis, dir
+            local k = g[15] > 0 and 2 or 1
+            ways = ways .. WAY[g[1]]:sub(k, k)
+          end
+          assert.equal(WAYS[entry.id], ways)
         end)
       end
 

@@ -33,18 +33,19 @@ local function at(x, y, z, frames, dt)
   end
 end
 
--- Through gate i's opening, off its centre by du sideways, taking a frame on each side
-local function pass(i, du)
+-- Through gate i's opening its way, or back the other way, off its centre by du sideways: put on one side, then a
+-- frame there and one on the other
+local function pass(i, du, back)
   local g = gates[i]
-  -- cx, cz; axis; cy
-  local x, z = g[9], g[11]
-  if g[1] == 3 then
-    at(x + (du or 0), g[10], z - 1)
-    at(x + (du or 0), g[10], z + 1)
-  else
-    at(x - 1, g[10], z + (du or 0))
-    at(x + 1, g[10], z + (du or 0))
+  -- cx, cz; dir; axis; cy
+  local x, z, s = g[9], g[11], back and -g[15] or g[15]
+  local x0, z0, x1, z1 = x + (du or 0), z - s, x + (du or 0), z + s
+  if g[1] ~= 3 then
+    x0, z0, x1, z1 = x - s, z + (du or 0), x + s, z + (du or 0)
   end
+  p.px, p.py, p.pz = x0, g[10], z0
+  at(x0, g[10], z0)
+  at(x1, g[10], z1)
 end
 
 local function state()
@@ -95,11 +96,22 @@ describe("racing", function()
       pass(2)
       assert.matches("^1/6 ", r.goal, state())
     end)
+    it("does not start through the start gate the wrong way", function()
+      pass(1, 0, true)
+      assert.equal(0, r.lap, state())
+      assert.is_nil(r.clock, state())
+      assert.equal("WRONG WAY", r.note, state())
+    end)
     it("starts through the start gate", function()
       pass(1)
       assert.matches("^2/6 ", r.goal, state())
       assert.equal(1, r.lap, state())
       assert.equal("0.0S", r.clock, state())
+    end)
+    it("does not count a gate flown the wrong way", function()
+      pass(2, 0, true)
+      assert.matches("^2/6 ", r.goal, state())
+      assert.equal("WRONG WAY", r.note, state())
     end)
     it("ignores gates out of order", function()
       pass(4)
