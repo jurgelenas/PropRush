@@ -4,7 +4,7 @@ local Ground, Scene, Gap, R, load = ...
 local Course = load("world/course", R, Scene, Gap)
 
 local Map = {
-  spawn = { x = 0, y = 0, z = 0, heading = 0 },
+  spawn = { x = 0, y = 0, z = -12, heading = 0 },
 }
 
 local GRID = 60
@@ -43,7 +43,7 @@ local RIDGE = Ground.newRing({ 1, 2, 1.5, 2.5, 1, 0.5, 1.5, 3, 2, 1, 1.5, 2, 1, 
 function Map.draw(quality)
   Ground.drawGrid(quality, GRID)
   Ground.drawRing(RIDGE, Ground.horizon(quality))
-  Ground.drawPad(0, 0)
+  Ground.drawPad(0, -12)
   scene.draw(quality)
 end
 
