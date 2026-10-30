@@ -120,6 +120,13 @@ function H.install(w, h)
   getTime = function()
     return H.time
   end
+  -- As a radio's: version, radio, major, minor, revision, osname
+  H.version = { 2, 12, 5 }
+  getVersion = function()
+    local v = H.version
+    local s = string.format("%d.%d.%d", v[1], v[2], v[3])
+    return s, "boxer-" .. s, v[1], v[2], v[3], "EdgeTX"
+  end
   -- Audio calls in order: { "tone", f, d, p, flags, slide, volume }, { "haptic", d, p, flags }, { "flush" }. As on
   -- the radio, a fraction in any argument is an error.
   PLAY_NOW, PLAY_BACKGROUND = 16, 32
