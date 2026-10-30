@@ -32,8 +32,8 @@ end
 local OVERHANG, TOWER, NACELLE, HUB = 4, 0.8, 1.1, 0.7
 -- Blades: ROOT_W half wide at ROOT out from the hub, narrowing to a point at the tip, BLADE_T half thick
 local ROOT, ROOT_W, BLADE_T = 0.8, 0.45, 0.25
--- Rotor speed in rad/s, about 15 rpm
-local SPIN, TURN, THIRD = 1.6, 2 * math.pi, 2 * math.pi / 3
+-- Rotor speed in rad/s, about 8 rpm
+local SPIN, TURN, THIRD = 0.8, 2 * math.pi, 2 * math.pi / 3
 local angle = 0
 
 function Kit.turn(dt)
