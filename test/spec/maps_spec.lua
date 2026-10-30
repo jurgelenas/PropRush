@@ -16,7 +16,7 @@ local Racing = assert(loadfile(SRC .. "modes/racing.lua"))(Gap)
 local WAYS = {
   gates = "NNESSW",
   slalom = "NNNNNESSSSW",
-  tech = "NNSNSNDSEWESW",
+  tech = "NNSNSNDSEEESW",
   super8 = "NESWSE",
 }
 local WAY = { "WE", "DU", "SN" }

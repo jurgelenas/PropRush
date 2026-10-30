@@ -1,6 +1,6 @@
 -- Racing: the map's gates in order, the first being start and finish. The clock starts through the first gate and
--- each pass through it after all the others closes a lap. Only the next gate is tested, one plane a frame, and
--- only flown its way through.
+-- each pass through it after all the others closes a lap. Only the next gate counts, flown its way through; it and
+-- the one after show WRONG WAY flown the other way. Two planes a frame.
 
 local Gap = ...
 
@@ -106,6 +106,12 @@ function Racing:update(dt, q, ox, oy, oz)
     end
     self.next = self.next % n + 1
     g = gates[self.next]
+  else
+    -- The one after flown backwards, as up the wrong side of a ladder past the rung
+    local h = gates[self.next % n + 1]
+    if through(h, ox, oy, oz, px, py, pz) then
+      self:wrongWay(h, px, py, pz)
+    end
   end
 
   -- Strings are rebuilt only when the shown number changes: the distance about every other frame, the clock
