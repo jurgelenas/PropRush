@@ -60,16 +60,6 @@ end
 -- Quad radius: boxes collide this far out from their faces, so the camera stays clear of them
 local RADIUS = 0.15
 
--- b[1..6]: x0, y0, z0, x1, y1, z1
-local function insideBox(b, x, y, z)
-  return x > b[1] - RADIUS
-    and x < b[4] + RADIUS
-    and z > b[3] - RADIUS
-    and z < b[6] + RADIUS
-    and y > b[2] - RADIUS
-    and y < b[5] + RADIUS
-end
-
 -- Squared distance from x, y, z to box b, 0 inside it; b[1..6]: x0, y0, z0, x1, y1, z1
 local function boxDistance2(b, x, y, z)
   local d, t = 0, 0
@@ -97,6 +87,18 @@ end
 
 -- Insertion sort on distance ([11] dist), farthest first: the order barely changes between frames, and B&W radios have no
 -- table lib
+-- The quad at x, y, z within RADIUS of box b: the box grown by RADIUS with rounded edges and corners, so clipping
+-- one hits it at an angle; b[1..6]: x0, y0, z0, x1, y1, z1
+local function touches(b, x, y, z)
+  return x > b[1] - RADIUS
+    and x < b[4] + RADIUS
+    and z > b[3] - RADIUS
+    and z < b[6] + RADIUS
+    and y > b[2] - RADIUS
+    and y < b[5] + RADIUS
+    and boxDistance2(b, x, y, z) < RADIUS * RADIUS
+end
+
 local function sortByDistance(list)
   for i = 2, #list do
     local b = list[i]
@@ -148,13 +150,13 @@ local function drawStructure(st, fogged)
 end
 
 local function structureCollides(st, x, y, z)
-  if not insideBox(st, x, y, z) then
+  if not touches(st, x, y, z) then
     return false
   end
   local parts = st.parts
   for i = 1, #parts do
     local b = parts[i]
-    if insideBox(b, x, y, z) then
+    if touches(b, x, y, z) then
       return b
     end
   end
@@ -307,7 +309,7 @@ function Scene.new()
         if hit then
           return hit
         end
-      elseif insideBox(b, x, y, z) then
+      elseif touches(b, x, y, z) then
         return b
       end
     end
@@ -332,52 +334,56 @@ function Scene.new()
   return scene
 end
 
--- The quad q has moved into box b from ox, oy, oz: it came through the top (a roof to land on) or the bottom if
--- it was above or below the box, else through the nearest side. Moves it back onto that face and hands the contact
--- to q:contact; returns true on a crash.
+-- The quad q has moved into box b from ox, oy, oz. The surface normal points from the closest point on the box to
+-- where the quad first touched it: a face head-on, slanting round an edge or corner it clipped. Moves it back out
+-- along the normal to RADIUS from that point and hands the contact to q:contact; returns true on a crash.
 function Scene.collide(b, q, ox, oy, oz, dt)
-  -- b[1..6]: x0, y0, z0, x1, y1, z1
-  local y0, y1 = b[2] - RADIUS, b[5] + RADIUS
-  if oy >= y1 then
-    q.py = y1
-    return q:contact(0, 1, 0, dt)
-  elseif oy <= y0 then
-    q.py = y0
-    return q:contact(0, -1, 0, dt)
+  local x, y, z = ox, oy, oz
+  local r2 = RADIUS * RADIUS
+  if boxDistance2(b, ox, oy, oz) >= r2 then
+    -- Where it first touched, between where it came from (t0 = 0) and where it is (t1 = 1), to 1/16 of the step:
+    -- under 2 cm at 30 m/s, so never inside the box
+    local dx, dy, dz = q.px - ox, q.py - oy, q.pz - oz
+    local t0, t1 = 0, 1
+    for _ = 1, 4 do
+      local t = (t0 + t1) / 2
+      if boxDistance2(b, ox + dx * t, oy + dy * t, oz + dz * t) < r2 then
+        t1 = t
+      else
+        t0 = t
+      end
+    end
+    x, y, z = ox + dx * t1, oy + dy * t1, oz + dz * t1
   end
-  local x0, x1, z0, z1 = b[1] - RADIUS, b[4] + RADIUS, b[3] - RADIUS, b[6] + RADIUS
-  -- The side it came from, so a fast quad deep into a thin wall is not pushed out the far side; the nearest one
-  -- when it came from a corner or was already inside
-  local outX = ox <= x0 or ox >= x1
-  local outZ = oz <= z0 or oz >= z1
-  local x, z = q.px, q.pz
-  if outX and not outZ then
-    x, z = ox, (z0 + z1) / 2
-  elseif outZ and not outX then
-    x, z = (x0 + x1) / 2, oz
+  -- Closest point cx, cy, cz; b[1..6]: x0, y0, z0, x1, y1, z1
+  local cx, cy, cz = x, y, z
+  if x < b[1] then
+    cx = b[1]
+  elseif x > b[4] then
+    cx = b[4]
   end
-  local t, side = x - x0, 1
-  if x1 - x < t then
-    t, side = x1 - x, 2
+  if y < b[2] then
+    cy = b[2]
+  elseif y > b[5] then
+    cy = b[5]
   end
-  if z - z0 < t then
-    t, side = z - z0, 3
+  if z < b[3] then
+    cz = b[3]
+  elseif z > b[6] then
+    cz = b[6]
   end
-  if z1 - z < t then
-    side = 4
+  local nx, ny, nz = x - cx, y - cy, z - cz
+  local d = math.sqrt(nx * nx + ny * ny + nz * nz)
+  if d < 1e-6 then
+    -- Was inside the box already: out the top
+    nx, ny, nz, d = 0, 1, 0, 1
   end
-  if side == 1 then
-    q.px = x0
-    return q:contact(-1, 0, 0, dt)
-  elseif side == 2 then
-    q.px = x1
-    return q:contact(1, 0, 0, dt)
-  elseif side == 3 then
-    q.pz = z0
-    return q:contact(0, 0, -1, dt)
+  nx, ny, nz = nx / d, ny / d, nz / d
+  local push = RADIUS - ((q.px - cx) * nx + (q.py - cy) * ny + (q.pz - cz) * nz)
+  if push > 0 then
+    q.px, q.py, q.pz = q.px + nx * push, q.py + ny * push, q.pz + nz * push
   end
-  q.pz = z1
-  return q:contact(0, 0, 1, dt)
+  return q:contact(nx, ny, nz, dt)
 end
 
 return Scene
