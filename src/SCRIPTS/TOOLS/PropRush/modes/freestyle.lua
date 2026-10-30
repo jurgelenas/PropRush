@@ -1,11 +1,17 @@
 -- Freestyle scoring: tricks read from the quad's flight, chained into combos. Each trick scores at once, times the
 -- combo multiplier, which grows with every trick within COMBO_TIME of the last; a prop strike or a crash resets it.
 
-local Course = ...
+local Gap = ...
 
 local format, floor, abs = string.format, math.floor, math.abs
 
 local RAD = math.pi / 180
+-- Cue numbers (platform/cues)
+local CUE_ROLL, CUE_FLIP, CUE_FLIP_ROLL, CUE_YAW, CUE_TRIPPY, CUE_LOOP, CUE_SPLIT_S, CUE_DIVE =
+  16, 17, 18, 19, 20, 21, 22, 23
+local CUE_GAP, CUE_GAP_INVERTED, CUE_HANG, CUE_KNIFE, CUE_PROXY, CUE_HANG_TICK, CUE_KNIFE_TICK, CUE_PROXY_TICK =
+  24, 25, 26, 27, 28, 29, 30, 31
+local CUE_BANK, CUE_LOST, CUE_RECORD, CUE_BEST = 33, 34, 35, 36
 -- Flips and rolls: the quad's turn about pitch and roll is summed from leaving upright (up axis height under
 -- UPRIGHT); one that went past INVERTED counts its whole turns once it has been upright again for SETTLE seconds,
 -- so a double roll passing upright midway stays one trick. Leaving upright skips ~45 degrees of a turn, so
@@ -46,14 +52,14 @@ local COMBO_TIME = 3
 local MULT_MAX = 5
 local NOTE_TIME = 1.5
 
-local through = Course.through
+local through = Gap.through
 
 local TIMES = { "", "DOUBLE ", "TRIPLE " }
 
 local Freestyle = {}
 Freestyle.__index = Freestyle
 
--- map: its gaps (Course.gap) and near(x, y, z, dist), both optional; sound: platform/sound, optional; save:
+-- map: its gaps (Gap.new) and near(x, y, z, dist), both optional; sound: platform/sound, optional; save:
 -- config/save, id: the map's key there
 function Freestyle.new(map, sound, save, id)
   local t =
@@ -86,7 +92,7 @@ function Freestyle:show(note)
   self.note, self.noteTime = note, NOTE_TIME
 end
 
--- cue: the sound's trick motif, n: its turns
+-- cue: the trick motif's cue number (platform/cues), n: its turns
 function Freestyle:award(name, points, cue, n)
   self.lastGap = nil
   if self.mult < MULT_MAX then
@@ -109,7 +115,7 @@ function Freestyle:award(name, points, cue, n)
   if best and not self.passedBest and self.score > best then
     self.passedBest = true
     if sound then
-      sound.cue("record")
+      sound.cue(CUE_RECORD)
     end
   end
 end
@@ -127,7 +133,7 @@ function Freestyle:drop()
   if self.mult > 1 then
     self:show("COMBO LOST")
     if self.sound then
-      self.sound.cue("lost")
+      self.sound.cue(CUE_LOST)
     end
   end
   self.mult = 0
@@ -150,24 +156,24 @@ function Freestyle:endTurn(q)
   local dot = q.vx * svx + q.vz * svz
   local fast = s2 >= LOOP_SPEED * LOOP_SPEED
   if flips == 1 and rolls == 0 and fast and self.reversed and dot > 0 and self.top - self.sy >= LOOP_RISE then
-    self:award("POWER LOOP", LOOP_POINTS, "loop")
+    self:award("POWER LOOP", LOOP_POINTS, CUE_LOOP)
   elseif n > 0 then
     local name, cue
     if flips > 0 and rolls > 0 then
-      name, cue = "FLIP+ROLL", "flipRoll"
+      name, cue = "FLIP+ROLL", CUE_FLIP_ROLL
     elseif flips > 0 then
-      name, cue = named(n, self.pitch > 0 and "BACKFLIP" or "FRONTFLIP"), "flip"
+      name, cue = named(n, self.pitch > 0 and "BACKFLIP" or "FRONTFLIP"), CUE_FLIP
     else
-      name, cue = named(n, "ROLL"), "roll"
+      name, cue = named(n, "ROLL"), CUE_ROLL
     end
-    self:award(name, TURN_POINTS * n * (n + 1) // 2, cue, cue ~= "flipRoll" and n or 1)
+    self:award(name, TURN_POINTS * n * (n + 1) // 2, cue, cue ~= CUE_FLIP_ROLL and n or 1)
   elseif
     fast
     and self.sy - q.py >= SPLIT_DROP
     and dot < 0
     and dot * dot >= COS2_135 * s2 * (q.vx * q.vx + q.vz * q.vz)
   then
-    self:award("SPLIT-S", SPLIT_POINTS, "splitS")
+    self:award("SPLIT-S", SPLIT_POINTS, CUE_SPLIT_S)
   end
 end
 
@@ -179,9 +185,9 @@ function Freestyle:gapsFlown(q, ox, oy, oz)
     local g = gaps[i]
     if g ~= self.lastGap and through(g, ox, oy, oz, px, py, pz) then
       if q.uy < INVERTED then
-        self:award("INVERTED " .. g.name, 2 * g.points, "gapInverted")
+        self:award("INVERTED " .. g.name, 2 * g.points, CUE_GAP_INVERTED)
       else
-        self:award(g.name, g.points, "gap")
+        self:award(g.name, g.points, CUE_GAP)
       end
       self.lastGap = g
     end
@@ -211,7 +217,7 @@ function Freestyle:update(dt, q, ox, oy, oz)
     self.comboTime = self.comboTime - dt
     if self.comboTime <= 0 then
       if self.mult > 1 and self.sound then
-        self.sound.cue("bank")
+        self.sound.cue(CUE_BANK)
       end
       self.mult, self.lastGap = 0, nil
     end
@@ -267,9 +273,9 @@ function Freestyle:flight(dt, q, dPitch, dRoll, dYaw)
     if n > 0 then
       local points = TURN_POINTS * n * (n + 1) // 2
       if self.trippy then
-        self:award(named(n, "TRIPPY SPIN"), 2 * points, "trippy", n)
+        self:award(named(n, "TRIPPY SPIN"), 2 * points, CUE_TRIPPY, n)
       else
-        self:award(named(n, "YAW SPIN"), points, "yaw", n)
+        self:award(named(n, "YAW SPIN"), points, CUE_YAW, n)
       end
     end
     self.yaw, self.trippy = 0, true
@@ -277,10 +283,10 @@ function Freestyle:flight(dt, q, dPitch, dRoll, dYaw)
 
   if uy < HANG_UY then
     self.hang = self.hang + dt
-    self:holdTick("hangTick", self.hang, dt, HANG_TIME)
+    self:holdTick(CUE_HANG_TICK, self.hang, dt, HANG_TIME)
   else
     if self.hang >= HANG_TIME then
-      self:award(format("HANG %.1fS", self.hang), floor(self.hang * HANG_POINTS), "hang")
+      self:award(format("HANG %.1fS", self.hang), floor(self.hang * HANG_POINTS), CUE_HANG)
     end
     self.hang = 0
   end
@@ -297,10 +303,10 @@ function Freestyle:flight(dt, q, dPitch, dRoll, dYaw)
       self.kfx, self.kfz = fx, fz
     end
     self.knife = self.knife + dt
-    self:holdTick("knifeTick", self.knife, dt, KNIFE_TIME)
+    self:holdTick(CUE_KNIFE_TICK, self.knife, dt, KNIFE_TIME)
   else
     if self.knife >= KNIFE_TIME then
-      self:award(format("KNIFE EDGE %.1fS", self.knife), floor(self.knife * KNIFE_POINTS), "knife")
+      self:award(format("KNIFE EDGE %.1fS", self.knife), floor(self.knife * KNIFE_POINTS), CUE_KNIFE)
     end
     self.knife = 0
   end
@@ -310,10 +316,10 @@ function Freestyle:flight(dt, q, dPitch, dRoll, dYaw)
     local vx, vy, vz = q.vx, q.vy, q.vz
     if vx * vx + vy * vy + vz * vz > PROXY_SPEED * PROXY_SPEED and near(q.px, q.py, q.pz, PROXY_DIST) then
       self.proxy = self.proxy + dt
-      self:holdTick("proxyTick", self.proxy, dt, PROXY_TIME)
+      self:holdTick(CUE_PROXY_TICK, self.proxy, dt, PROXY_TIME)
     else
       if self.proxy >= PROXY_TIME then
-        self:award(format("PROXIMITY %.1fS", self.proxy), floor(self.proxy * PROXY_POINTS), "proxy")
+        self:award(format("PROXIMITY %.1fS", self.proxy), floor(self.proxy * PROXY_POINTS), CUE_PROXY)
       end
       self.proxy = 0
     end
@@ -334,7 +340,7 @@ function Freestyle:flight(dt, q, dPitch, dRoll, dYaw)
       self.diving = false
       local drop = floor(self.diveTop - q.py)
       if drop >= DIVE_DROP and self.diveSpeed >= DIVE_SPEED and self.noseDown then
-        self:award(format("DIVE %dM", drop), drop * DIVE_POINTS, "dive")
+        self:award(format("DIVE %dM", drop), drop * DIVE_POINTS, CUE_DIVE)
       end
     end
   end
@@ -349,7 +355,7 @@ end
 function Freestyle:finish()
   if self:keep() then
     if self.sound then
-      self.sound.cue("best")
+      self.sound.cue(CUE_BEST)
     end
     self.note = format("NEW BEST %d", self.score)
   else

@@ -2,58 +2,30 @@
 -- is a tone on the background slot, re-sent every frame before it ends, so it never touches the queue. Every
 -- argument to playTone/playHaptic must be an integer: a fraction is a Lua error on the radio.
 
-local settings = ...
+local settings, list = ...
 
-local floor, random, gmatch = math.floor, math.random, string.gmatch
+local floor, random, byte, char = math.floor, math.random, string.byte, string.char
 
--- A cue: rank (2 most important .. 5 ambience), channel (0 queue, 1 PLAY_NOW), haptic length (10 ms units, 0 none,
--- under 6 underflows with the radio's haptic length at -2), haptic pause (5 ms units) and repeats; then notes of
--- frequency (Hz), length and pause (ms, multiples of 10), slide (Hz per ms) and volume (1..5). Event notes are in
--- A major from 880 Hz up, above the motor; success rises, failure falls, warnings repeat one note.
-local CUES = {
-  deny = "4 0 0 0 0 698 60 20 0 3 659 100 0 0 3",
-  rev = "3 0 0 0 0 420 480 0 1 1",
-  throttle = "4 0 0 0 0 1319 60 60 0 3 1319 60 0 0 3",
-  armed = "3 0 6 0 0 880 60 20 0 3 1109 60 20 0 3 1319 100 0 0 3",
-  disarmed = "3 0 6 0 0 1109 60 20 0 3 880 100 0 0 3",
-  respawn = "3 1 0 0 0 660 60 0 10 2",
-  bump = "5 1 0 0 0 520 40 0 -8 2",
-  strike = "3 1 0 0 0 1600 30 0 -40 3",
-  strikeHard = "3 1 0 0 0 1600 30 0 -40 4",
-  crackle = "5 1 0 0 0 2000 10 0 0 1",
-  crackleLoud = "5 1 0 0 0 2000 10 0 0 2",
-  low = "4 0 6 20 1 1760 50 50 0 3",
-  empty = "2 0 15 20 1 880 120 30 0 4 659 120 30 0 4 440 250 0 -1 4",
-  range = "4 0 0 0 0 1480 80 40 0 3 1109 120 0 0 3",
-  link = "4 0 0 0 0 1109 60 20 0 2 1480 80 0 0 2",
-  -- Tricks: a motif per kind (its first note repeated once per turn), then the combo chime
-  roll = "3 0 0 0 0 1109 30 20 0 3",
-  flip = "3 0 0 0 0 988 30 20 0 3",
-  flipRoll = "3 0 0 0 0 988 30 20 0 3 1109 30 20 0 3",
-  yaw = "3 0 0 0 0 1319 30 20 5 3",
-  trippy = "3 0 0 0 0 1319 30 20 -5 3 2637 40 0 0 3",
-  loop = "3 0 0 0 0 880 120 0 8 3 1760 60 10 -8 3",
-  splitS = "3 0 0 0 0 1760 120 0 -8 3 880 60 20 8 3",
-  dive = "3 0 0 0 0 1760 200 20 -5 3",
-  gap = "3 0 0 0 0 1109 80 0 12 3",
-  gapInverted = "3 0 0 0 0 1109 80 0 12 3 2637 40 0 0 3",
-  hang = "3 0 0 0 0 988 140 20 0 3",
-  knife = "3 0 0 0 0 1175 140 20 0 3",
-  proxy = "3 0 0 0 0 1480 140 20 0 3",
-  hangTick = "5 1 0 0 0 988 20 0 0 2",
-  knifeTick = "5 1 0 0 0 1175 20 0 0 2",
-  proxyTick = "5 1 0 0 0 1480 20 0 0 2",
-  chime = "3 0 0 0 0 1319 90 0 0 4",
-  bank = "3 0 0 0 0 1760 50 10 0 4 2217 50 10 0 4 2637 120 0 0 4",
-  lost = "2 0 0 0 0 740 80 20 0 4 698 80 20 0 4 659 180 0 -1 4",
-  record = "2 0 0 0 0 1760 60 10 0 4 2217 60 10 0 4 2637 150 0 0 4",
-  best = "2 0 8 20 2 880 70 10 0 5 1109 70 10 0 5 1319 70 10 0 5 1760 70 60 0 5 1319 70 10 0 5 1760 250 0 0 5",
-  -- Racing
-  start = "3 0 8 0 0 1760 250 0 0 4",
-  gate = "3 1 0 0 0 1319 40 0 0 3",
-  lap = "2 0 6 0 0 1319 60 20 0 4 1760 140 0 0 4",
-  bestLap = "2 0 8 20 1 1319 60 10 0 5 1760 60 10 0 5 2217 60 10 0 5 2637 200 0 0 5",
-}
+-- Cues (platform/cues) packed into CUES, one after another: notes, rank, channel, haptic length, pause and
+-- repeats, then per note 6 bytes: frequency high and low byte, length and pause in 10 ms, slide + 128, volume.
+-- AT holds each cue's offset into CUES as a high and a low byte. The list itself is let go.
+local CUES, AT = "", ""
+for id = 1, #list do
+  local c = list[id]
+  AT = AT .. char(#CUES // 256, #CUES % 256)
+  -- rank, channel, haptic length, pause, repeats
+  local s = char((#c - 5) // 5, c[1], c[2], c[3], c[4], c[5])
+  for i = 6, #c, 5 do
+    -- frequency, length, pause, slide, volume
+    local f = c[i]
+    s = s .. char(f // 256, f % 256, c[i + 1] // 10, c[i + 2] // 10, c[i + 3] + 128, c[i + 4])
+  end
+  CUES = CUES .. s
+end
+list = nil
+-- Cue numbers used here (platform/cues)
+local CUE_REV, CUE_ARMED, CUE_BUMP, CUE_STRIKE, CUE_STRIKE_HARD, CUE_CRACKLE, CUE_CRACKLE_LOUD, CUE_CHIME, CUE_GATE =
+  2, 4, 7, 8, 9, 10, 11, 32, 38
 
 -- Added to the chime for combo multipliers 1..5: E6, F#6, G#6, A6, C#7
 local CHIME = { 0, 161, 342, 441, 898 }
@@ -76,7 +48,6 @@ local VOLT_RPM = 1 / 4.2
 -- Ticks (10 ms) at which the queue and the PLAY_NOW slot run dry, as far as this module sent them
 local qEnd, pEnd, hEnd, hitEnd = 0, 0, 0, 0
 local rpm, mF, odd = 0, 0, false
-local buf = {}
 
 local Sound = {}
 
@@ -87,24 +58,21 @@ local function haptic(d, p, rep, urgent, now)
   end
 end
 
--- add: Hz added to every note; rep: extra plays of the first note; force: skips the lag check (the second half of
--- a pair). True when it played.
-local function play(name, add, rep, force)
-  local n = 0
-  for v in gmatch(CUES[name], "%-?%d+") do
-    n = n + 1
-    buf[n] = tonumber(v)
-  end
+-- Cue id; add: Hz added to every note; rep: extra plays of the first note; force: skips the lag check (the second
+-- half of a pair). True when it played.
+local function play(id, add, rep, force)
+  local hi, lo = byte(AT, 2 * id - 1, 2 * id)
+  local p = hi * 256 + lo + 1
+  local n, rank, channel, hLen, hPause, hRep = byte(CUES, p, p + 5)
   local now = getTime()
-  local rank = buf[1]
-  if buf[3] > 0 then
-    haptic(buf[3], buf[4], buf[5], rank <= 2, now)
+  if hLen > 0 then
+    haptic(hLen, hPause, hRep, rank <= 2, now)
   end
   if settings.sound == 0 then
     return false
   end
   local flags = 0
-  if buf[2] == 1 and now >= pEnd and n == 10 then
+  if channel == 1 and now >= pEnd and n == 1 then
     flags = PLAY_NOW
   else
     if qEnd < now then
@@ -115,10 +83,11 @@ local function play(name, add, rep, force)
     end
   end
   add, rep = add or 0, rep or 0
-  for i = 6, n, 5 do
-    local d, p = buf[i + 1], buf[i + 2]
-    playTone(floor(buf[i] + add), d, p, flags + rep, buf[i + 3], buf[i + 4])
-    local t = (d + p) * (rep + 1) // 10
+  for i = p + 6, p + 6 * n, 6 do
+    local fHi, fLo, d, ps, slide, volume = byte(CUES, i, i + 5)
+    d, ps = d * 10, ps * 10
+    playTone(floor(fHi * 256 + fLo + add), d, ps, flags + rep, slide - 128, volume)
+    local t = (d + ps) * (rep + 1) // 10
     if flags == 0 then
       qEnd = qEnd + t
     else
@@ -129,26 +98,27 @@ local function play(name, add, rep, force)
   return true
 end
 
-function Sound.cue(name, rep)
-  play(name, 0, rep)
+-- Cue id (platform/cues), rep extra plays of its first note
+function Sound.cue(id, rep)
+  play(id, 0, rep)
 end
 
--- A trick of n turns (ticks) at combo multiplier mult
-function Sound.trick(name, n, mult)
+-- Trick cue id of n turns (ticks) at combo multiplier mult
+function Sound.trick(id, n, mult)
   n = n or 1
-  if play(name, 0, n > 8 and 7 or n - 1) then
-    play("chime", CHIME[mult], 0, true)
+  if play(id, 0, n > 8 and 7 or n - 1) then
+    play(CUE_CHIME, CHIME[mult], 0, true)
   end
 end
 
--- A hold trick's k-th half second (0 when it qualifies): the tick climbs
-function Sound.tick(name, k)
-  play(name, 60 * k)
+-- A hold trick's tick cue id at its k-th half second (0 when it qualifies): the tick climbs
+function Sound.tick(id, k)
+  play(id, 60 * k)
 end
 
 -- Gate k of n (not the start): the blip climbs a fourth through the lap
 function Sound.gate(k, n)
-  play("gate", 441 * (k - 2) // (n > 3 and n - 2 or 1))
+  play(CUE_GATE, 441 * (k - 2) // (n > 3 and n - 2 or 1))
 end
 
 -- Contacts this frame: hit, the speed into a surface; struck, the edge-on speed of a prop strike (0 none)
@@ -160,20 +130,20 @@ function Sound.contact(hit, struck)
   if struck > 0 then
     hitEnd = now + HIT_GAP
     haptic(6 + floor(struck < 6 and struck or 6), 0, 0, true, now)
-    play(struck < 3 and "strike" or "strikeHard")
+    play(struck < 3 and CUE_STRIKE or CUE_STRIKE_HARD)
   elseif hit >= 1.5 then
     hitEnd = now + HIT_GAP
     if hit > 3 then
       haptic(6, 0, 0, true, now)
     end
-    play("bump")
+    play(CUE_BUMP)
   end
 end
 
 -- Static ticks as dense as the picture's snow (loss 0..1)
 function Sound.crackle(loss)
   if loss > 0.05 and random() < loss then
-    play(loss < 0.5 and "crackle" or "crackleLoud", random(0, 1600))
+    play(loss < 0.5 and CUE_CRACKLE or CUE_CRACKLE_LOUD, random(0, 1600))
   end
 end
 
@@ -232,7 +202,7 @@ end
 -- A setting just changed: let it be heard or felt
 function Sound.preview(key)
   if key == "sound" then
-    play(settings.sound == 2 and "rev" or "armed")
+    play(settings.sound == 2 and CUE_REV or CUE_ARMED)
   elseif key == "haptic" and settings.haptic then
     haptic(8, 0, 0, true, getTime())
   end

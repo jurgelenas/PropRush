@@ -4,7 +4,10 @@ local H = dofile("test/harness.lua")
 H.install(128, 64)
 
 local settings = { sound = 2, haptic = true }
-local Sound = assert(loadfile("src/SCRIPTS/TOOLS/PropRush/platform/sound.lua"))(settings)
+local CUES = assert(loadfile("src/SCRIPTS/TOOLS/PropRush/platform/cues.lua"))()
+local Sound = assert(loadfile("src/SCRIPTS/TOOLS/PropRush/platform/sound.lua"))(settings, CUES)
+local NAMES = dofile("test/cue_names.lua")
+local ID = NAMES.id
 
 local QUEUE, NOW, MOTOR = 0, PLAY_NOW, PLAY_BACKGROUND + PLAY_NOW
 
@@ -51,8 +54,28 @@ describe("sound", function()
   end)
 
   describe("cues", function()
+    it("are all named for the specs", function()
+      assert.equal(#CUES, #NAMES)
+    end)
+    it("pack every value as given", function()
+      for id, c in ipairs(CUES) do
+        H.time = H.time + 1000
+        Sound.stop()
+        H.audio = {}
+        settings.haptic = false
+        Sound.cue(id)
+        settings.haptic = true
+        local t = tones()
+        assert.equal((#c - 5) // 5, #t, NAMES[id])
+        for k, tone in ipairs(t) do
+          local i = 6 + (k - 1) * 5
+          -- frequency, length, pause, slide, volume
+          assert.same({ c[i], c[i + 1], c[i + 2], c[i + 3], c[i + 4] }, { tone[2], tone[3], tone[4], tone[6], tone[7] }, NAMES[id])
+        end
+      end
+    end)
     it("a melody plays in the queue", function()
-      Sound.cue("armed")
+      Sound.cue(ID.armed)
       local t = tones()
       assert.equal(3, #t)
       assert.same({ "tone", 880, 60, 20, QUEUE, 0, 3 }, t[1])
@@ -75,41 +98,41 @@ describe("sound", function()
       assert.equal(1760, tones()[2][2])
     end)
     it("a cue that would play late is dropped", function()
-      Sound.cue("best")
-      Sound.cue("armed")
+      Sound.cue(ID.best)
+      Sound.cue(ID.armed)
       assert.equal(6, #tones())
     end)
     it("and plays once the queue has caught up", function()
-      Sound.cue("best")
+      Sound.cue(ID.best)
       H.time = H.time + 50
-      Sound.cue("armed")
+      Sound.cue(ID.armed)
       assert.equal(9, #tones())
     end)
     it("turns repeat the motif's first note, then the combo chime", function()
-      Sound.trick("roll", 3, 2)
+      Sound.trick(ID.roll, 3, 2)
       local t = tones()
       assert.same({ "tone", 1109, 30, 20, 2, 0, 3 }, t[1])
       assert.same({ "tone", 1480, 90, 0, QUEUE, 0, 4 }, t[2])
     end)
     it("a held trick's ticks climb", function()
-      Sound.tick("hangTick", 0)
+      Sound.tick(ID.hangTick, 0)
       H.time = H.time + 50
-      Sound.tick("hangTick", 2)
+      Sound.tick(ID.hangTick, 2)
       assert.equal(988, tones()[1][2])
       assert.equal(1108, tones()[2][2])
     end)
     it("every cue sends whole numbers", function()
       for _, name in ipairs({ "deny", "rev", "throttle", "respawn", "low", "empty", "range", "link", "lost" }) do
         H.time = H.time + 1000
-        Sound.cue(name)
+        Sound.cue(ID[name])
       end
       for _, name in ipairs({ "flip", "flipRoll", "yaw", "trippy", "loop", "splitS", "dive", "gap", "knife" }) do
         H.time = H.time + 1000
-        Sound.trick(name, 1, 5)
+        Sound.trick(ID[name], 1, 5)
       end
       for _, name in ipairs({ "bank", "record", "best", "start", "lap", "bestLap" }) do
         H.time = H.time + 1000
-        Sound.cue(name)
+        Sound.cue(ID[name])
       end
       Sound.contact(5.3, 2.7)
       Sound.crackle(1)
@@ -120,21 +143,21 @@ describe("sound", function()
   describe("settings", function()
     it("SOUND OFF plays nothing but keeps the haptic", function()
       settings.sound = 0
-      Sound.cue("armed")
+      Sound.cue(ID.armed)
       Sound.motor(quad(0.5), 0.04)
       assert.equal(0, #tones())
       assert.equal(1, count("haptic"))
     end)
     it("HAPTIC OFF keeps the sound", function()
       settings.haptic = false
-      Sound.cue("armed")
+      Sound.cue(ID.armed)
       assert.equal(3, #tones())
       assert.equal(0, count("haptic"))
     end)
     it("NO MOTOR plays cues without the motor", function()
       settings.sound = 1
       Sound.motor(quad(0.5), 0.04)
-      Sound.cue("armed")
+      Sound.cue(ID.armed)
       assert.equal(3, #tones())
     end)
   end)

@@ -11,7 +11,7 @@ local R = load("gfx/render3d")
 local Quad = load("physics/quad", load("physics/rates"))
 local Ground = load("world/ground", R)
 local Scene = load("world/scene", R)
-local Course = load("world/course", R, Scene)
+local Gap = load("world/gap")
 local settings = load("config/settings")
 local Hud = load("ui/hud", gfx)
 R.setSink(gfx)
@@ -58,9 +58,9 @@ local MAPS = {
 }
 
 local q = Quad.new()
-local Racing = load("modes/racing", Course)
+local Racing = load("modes/racing", Gap)
 for _, id in ipairs({ "pillars", "bando", "gates" }) do
-  local Map = load("maps/" .. id, Ground, Scene, Course)
+  local Map = load("maps/" .. id, Ground, Scene, Gap, R, load)
   local race = Map.gates and Racing.new(Map)
   for _, p in ipairs(MAPS[id]) do
     q:reset(p[2], p[3], p[4], p[5])

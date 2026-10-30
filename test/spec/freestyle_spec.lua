@@ -7,8 +7,8 @@ local SRC = "src/SCRIPTS/TOOLS/PropRush/"
 local Quad = assert(loadfile(SRC .. "physics/quad.lua"))(assert(loadfile(SRC .. "physics/rates.lua"))())
 local R = assert(loadfile(SRC .. "gfx/render3d.lua"))()
 local Scene = assert(loadfile(SRC .. "world/scene.lua"))(R)
-local Course = assert(loadfile(SRC .. "world/course.lua"))(R, Scene)
-local Freestyle = assert(loadfile(SRC .. "modes/freestyle.lua"))(Course)
+local Gap = assert(loadfile(SRC .. "world/gap.lua"))()
+local Freestyle = assert(loadfile(SRC .. "modes/freestyle.lua"))(Gap)
 local save = assert(loadfile(SRC .. "config/save.lua"))({
   write = function()
     return true
@@ -23,7 +23,7 @@ wall:add(6, 20, 8, 0.6, 8, 0)
 wall:add(0, 20, 4, 0.6, 2, 0)
 wall:add(0, 20, 4, 0.6, 3, 5)
 scene.addBox(30.5, 50, 1, 100, 10)
-local map = { gaps = { Course.gap("WINDOW", 10, -2, 2, 20, 2, 5, 20) }, near = scene.near }
+local map = { gaps = { Gap.new("WINDOW", 10, -2, 2, 20, 2, 5, 20) }, near = scene.near }
 
 local settings = {
   angleMode = false,
@@ -46,15 +46,16 @@ local q, t
 local notes
 -- The sound cues asked for, as "trick roll 2 1", "tick hangTick 0", "cue lost"
 local cues
+local NAMES = dofile("test/cue_names.lua")
 local sound = {
-  trick = function(name, n, mult)
-    cues[#cues + 1] = string.format("trick %s %d %d", name, n or 1, mult)
+  trick = function(id, n, mult)
+    cues[#cues + 1] = string.format("trick %s %d %d", NAMES[id], n or 1, mult)
   end,
-  tick = function(name, k)
-    cues[#cues + 1] = string.format("tick %s %d", name, k)
+  tick = function(id, k)
+    cues[#cues + 1] = string.format("tick %s %d", NAMES[id], k)
   end,
-  cue = function(name)
-    cues[#cues + 1] = "cue " .. name
+  cue = function(id)
+    cues[#cues + 1] = "cue " .. NAMES[id]
   end,
 }
 

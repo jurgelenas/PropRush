@@ -1,6 +1,7 @@
 -- Slalom: two lines of flags woven left and right, joined by a low and a high gate, round a mast.
 
-local Ground, Scene, Course = ...
+local Ground, Scene, Gap, R, load = ...
+local Course = load("world/course", R, Scene, Gap)
 
 local Map = {
   spawn = { x = 0, y = 0, z = 0, heading = 0 },

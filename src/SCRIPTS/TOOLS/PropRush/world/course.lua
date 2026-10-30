@@ -1,44 +1,9 @@
--- Course pieces: gaps (openings that score in freestyle), the test for flying through one, and the race kit: gates,
--- ladders, side-by-side gates, cubes and flags.
+-- Race kit: gates, ladders, side-by-side gates, cubes and flags, with their openings (world/gap). Only racing maps
+-- load it.
 
-local R, Scene = ...
+local R, Scene, Gap = ...
 
 local Course = {}
-
--- Gap for freestyle scoring: a flat rectangle x0, y0, z0 .. x1, y1, z1, flat along one axis (x0 == x1: a
--- window in a wall along z; y0 == y1: a hole in a roof), worth points flown through.
-function Course.gap(name, points, x0, y0, z0, x1, y1, z1)
-  local g = { name = name, points = points }
-  if x0 == x1 then
-    g.axis, g.at, g.u0, g.u1, g.v0, g.v1 = 1, x0, y0, y1, z0, z1
-  elseif y0 == y1 then
-    g.axis, g.at, g.u0, g.u1, g.v0, g.v1 = 2, y0, x0, x1, z0, z1
-  else
-    assert(z0 == z1, "gap is not flat")
-    g.axis, g.at, g.u0, g.u1, g.v0, g.v1 = 3, z0, x0, x1, y0, y1
-  end
-  return g
-end
-
--- True when the path from ox, oy, oz to px, py, pz crosses gap g, either way
-function Course.through(g, ox, oy, oz, px, py, pz)
-  local a, b, u, u1, v, v1
-  local axis = g.axis
-  if axis == 1 then
-    a, b, u, u1, v, v1 = ox, px, oy, py, oz, pz
-  elseif axis == 2 then
-    a, b, u, u1, v, v1 = oy, py, ox, px, oz, pz
-  else
-    a, b, u, u1, v, v1 = oz, pz, ox, px, oy, py
-  end
-  local at = g.at
-  if (a < at) == (b < at) then
-    return false
-  end
-  local t = (at - a) / (b - a)
-  u, v = u + (u1 - u) * t, v + (v1 - v) * t
-  return u > g.u0 and u < g.u1 and v > g.v0 and v < g.v1
-end
 
 -- Race kit pieces are frames of square bars between joints (R.frame), colliding as one box per bar. Gate bars are
 -- BAR thick.
@@ -139,7 +104,7 @@ local function newFrame(scene, half, meta)
   return scene.addObject(setmetatable(f, meta or FRAME))
 end
 
--- Opening flown through for racing: g as Course.gap, plus the marker's anchor: centre cx, cy, cz and top. piece:
+-- Opening flown through for racing: g as Gap.new, plus the marker's anchor: centre cx, cy, cz and top. piece:
 -- the frame when it has several openings, so racing previews the next when two of it follow each other.
 local function opening(g, cx, cy, cz, top, piece)
   g.cx, g.cy, g.cz, g.top, g.piece = cx, cy, cz, top, piece
@@ -172,7 +137,7 @@ function Course.addFrame(scene, x, z, w, h, y0, alongX, cols, rows)
       -- Opening centre along the frame
       local u = -outer + c * (w + BAR) + (w + BAR) / 2
       local ox, oz = x + ux * u, z + uz * u
-      local g = Course.gap("GATE", 0, ox - ux * w / 2, yb, oz - uz * w / 2, ox + ux * w / 2, yb + h, oz + uz * w / 2)
+      local g = Gap.new("GATE", 0, ox - ux * w / 2, yb, oz - uz * w / 2, ox + ux * w / 2, yb + h, oz + uz * w / 2)
       -- Several openings: the marker sits in the middle of its own, not on the bar shared with the next row
       local mid = yb + h / 2
       gaps[#gaps + 1] = opening(g, ox, mid, oz, piece and mid or yb + h, piece)
@@ -204,11 +169,11 @@ function Course.addCube(scene, x, z, s, y0)
   -- Side markers sit in the middle of the face, where they stay in view from inside after the dive
   local y1, mid, hs = y0 + s, y0 + s / 2, s / 2
   return {
-    top = opening(Course.gap("CUBE", 0, x - hs, y1, z - hs, x + hs, y1, z + hs), x, y1, z, y1 + BAR, f),
-    n = opening(Course.gap("CUBE", 0, x - hs, y0, z + e, x + hs, y1, z + e), x, mid, z + e, mid, f),
-    s = opening(Course.gap("CUBE", 0, x - hs, y0, z - e, x + hs, y1, z - e), x, mid, z - e, mid, f),
-    e = opening(Course.gap("CUBE", 0, x + e, y0, z - hs, x + e, y1, z + hs), x + e, mid, z, mid, f),
-    w = opening(Course.gap("CUBE", 0, x - e, y0, z - hs, x - e, y1, z + hs), x - e, mid, z, mid, f),
+    top = opening(Gap.new("CUBE", 0, x - hs, y1, z - hs, x + hs, y1, z + hs), x, y1, z, y1 + BAR, f),
+    n = opening(Gap.new("CUBE", 0, x - hs, y0, z + e, x + hs, y1, z + e), x, mid, z + e, mid, f),
+    s = opening(Gap.new("CUBE", 0, x - hs, y0, z - e, x + hs, y1, z - e), x, mid, z - e, mid, f),
+    e = opening(Gap.new("CUBE", 0, x + e, y0, z - hs, x + e, y1, z + hs), x + e, mid, z, mid, f),
+    w = opening(Gap.new("CUBE", 0, x - e, y0, z - hs, x - e, y1, z + hs), x - e, mid, z, mid, f),
   }
 end
 
@@ -245,7 +210,7 @@ function Course.addFlag(scene, x, z, dx, dz)
   -- pass side dx, dz
   f[18], f[19] = dx, dz
   local ex, ez = x + dx * FLAG_REACH, z + dz * FLAG_REACH
-  local g = Course.gap("FLAG", 0, math.min(x, ex), 0, math.min(z, ez), math.max(x, ex), FLAG_TOP, math.max(z, ez))
+  local g = Gap.new("FLAG", 0, math.min(x, ex), 0, math.min(z, ez), math.max(x, ex), FLAG_TOP, math.max(z, ez))
   return opening(g, x + dx * 1.5, 1.5, z + dz * 1.5, POLE_H)
 end
 
@@ -260,9 +225,9 @@ function Course.around(g, side)
   local u0, u1 = math.min(edge, far), math.max(edge, far)
   local r
   if g.axis == 3 then
-    r = opening(Course.gap("ROUND", 0, u0, 0, g.at, u1, FLAG_TOP, g.at), mark, g.v1, g.at, g.v1)
+    r = opening(Gap.new("ROUND", 0, u0, 0, g.at, u1, FLAG_TOP, g.at), mark, g.v1, g.at, g.v1)
   else
-    r = opening(Course.gap("ROUND", 0, g.at, 0, u0, g.at, FLAG_TOP, u1), g.at, g.v1, mark, g.v1)
+    r = opening(Gap.new("ROUND", 0, g.at, 0, u0, g.at, FLAG_TOP, u1), g.at, g.v1, mark, g.v1)
   end
   r.round = side
   return r

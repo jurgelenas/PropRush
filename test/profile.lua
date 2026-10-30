@@ -12,7 +12,7 @@ local R = load("gfx/render3d")
 local Quad = load("physics/quad", load("physics/rates"))
 local Ground = load("world/ground", R)
 local Scene = load("world/scene", R)
-local Course = load("world/course", R, Scene)
+local Gap = load("world/gap")
 local function drawGround(qual)
   Ground.drawGrid(qual)
   Ground.drawRing(Ground.HILLS, Ground.horizon(qual))
@@ -54,7 +54,7 @@ local POSES = {
 local sticks = { ail = 0, ele = 0, thr = 0, rud = 0 }
 local settings = load("config/settings")
 for _, id in ipairs({ "pillars", "bando", "gates" }) do
-  Map = load("maps/" .. id, Ground, Scene, Course)
+  Map = load("maps/" .. id, Ground, Scene, Gap, R, load)
   drawBoxes = Map.scene.draw
   print("PROF map " .. id)
   for _, p in ipairs(POSES) do

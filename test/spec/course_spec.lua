@@ -6,9 +6,10 @@ H.install(128, 64)
 local SRC = "src/SCRIPTS/TOOLS/PropRush/"
 local R = assert(loadfile(SRC .. "gfx/render3d.lua"))()
 local Scene = assert(loadfile(SRC .. "world/scene.lua"))(R)
-local Course = assert(loadfile(SRC .. "world/course.lua"))(R, Scene)
+local Gap = assert(loadfile(SRC .. "world/gap.lua"))()
+local Course = assert(loadfile(SRC .. "world/course.lua"))(R, Scene, Gap)
 
-local through = Course.through
+local through = Gap.through
 
 -- A frame's step from z - 1 to z + 1 at x, y
 local function northwards(g, x, y, z)

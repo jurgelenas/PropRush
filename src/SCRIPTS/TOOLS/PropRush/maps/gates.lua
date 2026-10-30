@@ -1,6 +1,7 @@
 -- Gates: a six-gate loop round a tower on open fields, low and high gates and a hard turn back to the start.
 
-local Ground, Scene, Course = ...
+local Ground, Scene, Gap, R, load = ...
+local Course = load("world/course", R, Scene, Gap)
 
 local Map = {
   spawn = { x = 0, y = 0, z = 0, heading = 0 },
