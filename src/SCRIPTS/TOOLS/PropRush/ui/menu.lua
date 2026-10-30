@@ -80,10 +80,21 @@ local function gear(cx, cy)
   end
 end
 
+-- Five-pointed star, 12 px to its points
+local function star(cx, cy)
+  local xs, ys = {}, {}
+  for i = 0, 9 do
+    local r, a = i % 2 == 0 and 12 or 5, i * pi / 5
+    xs[i + 1], ys[i + 1] = cx + r * sin(a), cy + 1 - r * cos(a)
+  end
+  gfx.fill(xs, ys, 10, 4)
+end
+
 local ITEMS = {
   { label = "RACING", mode = "racing", icon = flag, info = { "Gates against", "the clock" } },
   { label = "FREESTYLE", mode = "freestyle", icon = flip, info = { "Flips, gaps", "and dives" } },
-  { label = "SETTINGS", icon = gear, info = { "Camera, rates", "and controls" } },
+  { label = "SETTINGS", screen = "settings", icon = gear, info = { "Camera, rates", "and controls" } },
+  { label = "CREDITS", screen = "credits", icon = star, info = { "About", "PropRush" } },
 }
 
 -- The catalogue lives with the menus only: flight reads the id and mode of the entry it is handed and keeps none of it
@@ -123,8 +134,8 @@ function Menu.run(event)
   if event == EVT_VIRTUAL_EXIT then
     return "quit"
   elseif event == EVT_VIRTUAL_ENTER then
-    if not item.mode then
-      return "settings"
+    if item.screen then
+      return item.screen
     elseif #item.maps > 0 then
       return "maps", item.maps
     end
