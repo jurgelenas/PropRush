@@ -25,6 +25,12 @@ return {
     info = { "Figure 8", "crossing in", "a cube" },
   },
   {
+    id = "field",
+    name = "FIELD",
+    mode = "racing",
+    info = { "Fast, wide", "turns and a", "dive gate" },
+  },
+  {
     id = "bando",
     name = "BANDO",
     mode = "freestyle",
@@ -41,6 +47,12 @@ return {
     name = "FARM",
     mode = "freestyle",
     info = { "Farmhouse,", "pines and", "a paddock" },
+  },
+  {
+    id = "yard",
+    name = "YARD",
+    mode = "freestyle",
+    info = { "Building site,", "crane and", "containers" },
   },
   {
     id = "pillars",

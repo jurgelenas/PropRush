@@ -15,9 +15,10 @@ local Racing = assert(loadfile(SRC .. "modes/racing.lua"))(Gap)
 -- Each racing map's way through its gates in course order: N(orth) +z, S -z, E +x, W -x, U(p) +y, D(own) -y
 local WAYS = {
   gates = "NNESSW",
-  slalom = "NNNNNESSSSW",
+  slalom = "NNNNESSSSENNNS",
   tech = "NNSNSNDSEEESW",
   super8 = "NESWSE",
+  field = "NNNEENNWSWSSE",
 }
 local WAY = { "WE", "DU", "SN" }
 
