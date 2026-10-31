@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main ]
+    branches: [ master ]
   pull_request:
-    branches: [ main ]
+    branches: [ master ]
   workflow_dispatch:
 
 permissions:
@@ -41,7 +41,7 @@ jobs:
           version="${SHA::7}"
           if [ "$EVENT" = pull_request ]; then
             zip_name="proprush-pr${PR}-${version}"
-          elif [ "$GITHUB_REF" = refs/heads/main ]; then
+          elif [ "$GITHUB_REF" = refs/heads/master ]; then
             zip_name=proprush-nightly
           else
             zip_name="proprush-${GITHUB_REF_NAME//\//-}-${version}"
@@ -61,7 +61,7 @@ jobs:
   nightly:
     name: Publish Nightly
     needs: build
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
     runs-on: ubuntu-26.04
     permissions:
       contents: write
@@ -85,6 +85,6 @@ jobs:
             --title "Nightly (development build)" \
             --prerelease \
             --latest=false \
-            --notes "**Development build, not a stable release.** Built automatically from the latest \`main\` commit ($GITHUB_SHA). It may contain unfinished or untested changes; for normal use, install the [latest release](https://github.com/$GITHUB_REPOSITORY/releases/latest).
+            --notes "**Development build, not a stable release.** Built automatically from the latest \`master\` commit ($GITHUB_SHA). It may contain unfinished or untested changes; for normal use, install the [latest release](https://github.com/$GITHUB_REPOSITORY/releases/latest).
 
           The tool shows version \`${GITHUB_SHA::7}\`. To install, extract \`proprush-nightly.zip\` onto the SD card root. Needs EdgeTX 2.12 or later on a black-and-white radio."
