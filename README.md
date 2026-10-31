@@ -1,6 +1,6 @@
 # PropRush
 
-An FPV quad simulator that runs on your EdgeTX radio, flown with the radio's own sticks.
+An FPV quad simulator that runs on your EdgeTX radio.
 
 | | |
 |---|---|
