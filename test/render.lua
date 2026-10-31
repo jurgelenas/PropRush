@@ -1,7 +1,11 @@
--- Renders fixed camera poses on the host to PBM files under /tmp/fpv-render (no simulator boot needed).
+-- Renders fixed camera poses on the host to PNG files under /tmp/fpv-render, pixel for pixel as the radio draws them
+-- (text needs a local EdgeTX build's fonts, see H.loadFonts), in the simulator window's LCD look.
 
 local H = dofile("test/harness.lua")
 H.install(tonumber(BENCH_W) or 128, tonumber(BENCH_H) or 64)
+if not H.loadFonts() then
+  print("No EdgeTX fonts found: rendering without text")
+end
 
 local function load(name, ...)
   return assert(loadfile("src/SCRIPTS/TOOLS/PropRush/" .. name .. ".lua"))(...)
@@ -83,7 +87,7 @@ for _, path in ipairs({ "freestyle/farm", "freestyle/bando", "racing/field" }) d
       gfx.static(loss)
     end
     Hud.draw(q, settings, nil, nil)
-    H.savePbm(string.format("/tmp/fpv-render/%s_%s_%dx%d.pbm", id, p[1], LCD_W, LCD_H))
+    H.savePng(string.format("/tmp/fpv-render/%s_%s_%dx%d.png", id, p[1], LCD_W, LCD_H))
   end
 end
 exit(0)
