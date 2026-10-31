@@ -11,7 +11,7 @@ local LINES = {
   "",
   "Licence: GPL-3.0",
   "github.com/jurgelenas/",
-  "  proprush",
+  "  PropRush",
 }
 
 local LINE_H = gfx.FH + 1
