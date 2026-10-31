@@ -1,12 +1,12 @@
 package:
-  id: github.com/jurgelenas/proprush
+  id: github.com/jurgelenas/PropRush
   name: PropRush
   description: FPV drone flying simulator that runs on the radio
   authors:
   - name: Jurg
   urls:
   - name: Repository
-    url: https://github.com/jurgelenas/proprush
+    url: https://github.com/jurgelenas/PropRush
   keywords:
   - fpv
   - simulator
