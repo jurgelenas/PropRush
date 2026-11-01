@@ -2,13 +2,16 @@
 -- in the plain LCD look (128 x 64) for trailer/trailer.sh to scale and cut. Usage, from the repo root:
 --   edgetx-cli dev simulator --radio "RadioMaster Boxer" --headless --script trailer/trailer.lua
 -- OUT=dir (default /tmp/proprush-trailer, must exist), SHOT=pattern renders only the shots it matches (a Lua pattern on the whole name).
+-- SHOTS=file renders that file's shots instead (it is called with shot and findObject), SIZE=WxH and FOV=degrees
+-- (diagonal) override the LCD size and field of view: wallpapers/wallpapers.sh uses all three.
 --
 -- A shot's path runs through keys {t, x, y, z} (seconds, metres) as a time-parametrised Hermite spline, or comes from
 -- pos(t). The quad's attitude follows from the path as a quad's would: its up axis along the thrust that drives the
 -- motion against gravity and drag, its nose along the velocity. spins add flips and rolls on top.
 
 local H = dofile("test/harness.lua")
-H.install(128, 64)
+local SW, SH = (os.getenv("SIZE") or "128x64"):match("(%d+)x(%d+)")
+H.install(tonumber(SW), tonumber(SH))
 assert(H.loadFonts(), "No EdgeTX fonts found: the trailer needs its text")
 
 local OUT = (os.getenv("OUT") or "/tmp/proprush-trailer") .. "/"
@@ -32,9 +35,10 @@ local R = load("gfx/render3d")
 local Quad = load("physics/quad", load("physics/rates"))
 local Ground, Scene, Gap = load("world/ground", R), load("world/scene", R), load("world/gap")
 local settings = load("config/settings")
+local FOV = tonumber(os.getenv("FOV")) or settings.fov
 local Hud = load("ui/hud", gfx)
 R.setSink(gfx)
-R.setView(0, 0, LCD_W, LCD_H, settings.fov, settings.camAngle)
+R.setView(0, 0, LCD_W, LCD_H, FOV, settings.camAngle)
 local highscore = { byMap = {}, record = function() end }
 
 local function newMap(mode, id)
@@ -466,6 +470,14 @@ shot({
   duration = 5,
 })
 
+local SHOTS_FILE = os.getenv("SHOTS")
+if SHOTS_FILE then
+  for i = #SHOTS, 1, -1 do
+    SHOTS[i] = nil
+  end
+  assert(loadfile(SHOTS_FILE))(shot, findObject)
+end
+
 -- Keys {x, y, z[, m/s into it]} flown at speed m/s into keys {t, x, y, z}; the shot lasts until the last key
 local function timed(s)
   local out, t = {}, 0
@@ -646,7 +658,7 @@ local function renderFlight(s, frame)
   q.armed = true
   q.voltage = s.voltage or 4.1
   local pf, pu = { q.fx, q.fy, q.fz }, { 0, 1, 0 }
-  R.setView(0, 0, LCD_W, LCD_H, settings.fov, s.cam or settings.camAngle)
+  R.setView(0, 0, LCD_W, LCD_H, FOV, s.cam or settings.camAngle)
   local crashed, crashTime = false, 0
   for f = 0, s.duration * FPS - 1 do
     for k = 1, SUB do
@@ -786,7 +798,9 @@ local function renderFlight(s, frame)
     if loss > 0 then
       gfx.static(loss)
     end
-    Hud.draw(q, settings, m.goal, message, m.note, m.clock)
+    if s.hud ~= false then
+      Hud.draw(q, settings, m.goal, message, m.note, m.clock)
+    end
     cutIn(f)
     frame()
   end
