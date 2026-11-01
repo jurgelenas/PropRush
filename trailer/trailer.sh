@@ -3,7 +3,8 @@
 # panel's pixel grid over it, and each scene on its own as <out dir>/trailer-scenes/NN-shot.mp4 for review. A scene
 # approved by moving it to <out dir>/trailer-approved/ under the same name is used from there as it is, never
 # rendered again. The soundtrack (trailer/trailer_music.py) is scored to the cuts.
-# Usage, from the repo root: trailer/trailer.sh [out.mp4] (default dist/trailer.mp4).
+# Usage, from the repo root: trailer/trailer.sh [out.mp4] (default dist/trailer.mp4), copied to
+# trailer/trailer.mp4, the one kept in the repo.
 # Needs edgetx-cli, ffmpeg and python3.
 set -euo pipefail
 
@@ -75,5 +76,6 @@ mkdir -p "$(dirname "$OUT_MP4")"
 python3 trailer/trailer_music.py "$WORK/music.wav" "${durations[@]}"
 ffmpeg -loglevel error -y -f concat -safe 0 -i "$WORK/list.txt" -i "$WORK/music.wav" -map 0:v -map 1:a -c:v copy \
   -c:a aac -b:a 192k -movflags +faststart "$OUT_MP4"
+cp "$OUT_MP4" trailer/trailer.mp4
 echo "$SCENES: $(ls "$SCENES" | wc -l) scenes"
 echo "$OUT_MP4: $(ffprobe -v error -show_entries format=duration -of csv=p=0 "$OUT_MP4") s"
