@@ -2,10 +2,12 @@
 
 An FPV quad simulator that runs on your EdgeTX radio.
 
+<a href="https://youtu.be/3vIoXO0aNcI"><img src="docs/trailer.png" alt="PropRush trailer on YouTube" width="256"></a>
+
 | | |
 |---|---|
-| ![Main menu](docs/menu.png) | ![SUPER 8 racing track](docs/super8.png) |
-| ![Chasing the drift car](docs/drift.png) | ![TRAINYARD freestyle map](docs/trainyard.png) |
+| <img src="docs/menu.png" alt="Main menu" width="256"> | <img src="docs/super8.png" alt="SUPER 8 racing track" width="256"> |
+| <img src="docs/drift.png" alt="Chasing the drift car" width="256"> | <img src="docs/trainyard.png" alt="TRAINYARD freestyle map" width="256"> |
 
 ## Features
 
