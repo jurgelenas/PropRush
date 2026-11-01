@@ -2,6 +2,8 @@
 
 An FPV quad simulator that runs on your EdgeTX radio.
 
+Built by Julius, a member of [PropRush.lt](https://proprush.lt), an FPV drone racing team from Lithuania.
+
 <a href="https://youtu.be/3vIoXO0aNcI"><img src="docs/trailer.png" alt="PropRush trailer on YouTube" width="256"></a>
 
 | | |
