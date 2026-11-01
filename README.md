@@ -2,7 +2,7 @@
 
 An FPV quad simulator that runs on your EdgeTX radio.
 
-[![PropRush trailer on YouTube](docs/trailer.png)](https://youtu.be/3vIoXO0aNcI)
+<a href="https://youtu.be/3vIoXO0aNcI"><img src="docs/trailer.png" alt="PropRush trailer on YouTube" width="256"></a>
 
 | | |
 |---|---|
