@@ -50,4 +50,14 @@ return {
     name = "OLD MILL",
     info = { "Windmill,", "a canal and", "a lift bridge" },
   },
+  {
+    id = "airfield",
+    name = "AIRFIELD",
+    info = { "A plane to", "chase, hangar", "and a tower" },
+  },
+  {
+    id = "fairground",
+    name = "FAIRGROUND",
+    info = { "Big wheel,", "a coaster and", "the big top" },
+  },
 }

@@ -14,9 +14,9 @@ Built by Julius, a member of [PropRush.lt](https://proprush.lt), an FPV drone ra
 ## Features
 
 - **Racing:** 10 gate tracks against the clock, from figure eights to road circuits, with the best lap saved per track.
-- **Freestyle:** 10 maps with something to fly around: chase a car drifting round a circuit, thread a moving train,
-  dodge wind turbine blades, or dive through an old mill, a harbour and a city. Score flips, rolls, power loops,
-  dives, hangs, gaps and proximity, with a combo multiplier.
+- **Freestyle:** 12 maps with something to fly around: chase a car drifting round a circuit or a plane round an
+  airfield, thread a moving train, dodge wind turbine blades and a big wheel, or dive through an old mill, a harbour
+  and a city. Score flips, rolls, power loops, dives, hangs, gaps and proximity, with a combo multiplier.
 - **Acro or Angle mode**, Betaflight rates per axis, and a settable camera angle and field of view.
 - **A LiPo that sags and runs flat**, prop strikes and crashes when you clip things.
 - **Your controls:** any stick, pot, slider or channel for each axis, and an optional arm switch.
