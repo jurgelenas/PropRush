@@ -1,5 +1,6 @@
 """Phone wallpapers (1080 x 2400) from wallpapers.sh's frames: white lines on black, each pixel 3 x 3, the PROPRUSH
-title from the trailer's title card on a framed plate near the bottom. Usage: compose.py <frames dir> <out dir>"""
+title from the trailer's title card on a framed plate near the bottom, and a -plain copy of each without it.
+Usage: compose.py <frames dir> <out dir>"""
 
 import sys
 
@@ -43,6 +44,7 @@ title = ink(frame("title", 60).crop((0, 10, 128, 30)))
 title = title.resize((title.width * 6, title.height * 6), Image.NEAREST)
 for name, n in SHOTS:
     img = ink(portrait(frame(name, n), name == "car-chase")).resize((W, H), Image.NEAREST)
+    img.save("%s/proprush-%s-plain.png" % (OUT, name))
     x, y = (W - title.width) // 2, H - title.height - 170
     ImageDraw.Draw(img).rectangle(
         [x - 6, y - 6, x + title.width + 6, y + title.height + 6], fill=PAPER, outline=INK, width=6
